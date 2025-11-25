@@ -145,3 +145,36 @@ def log_calendar_event_created(
         }
     )
 
+
+def log_workflow_execution(
+    workflow_name: str,
+    event_type: str,
+    event_data: Dict[str, Any],
+    status: str,
+    result: Optional[Dict[str, Any]] = None
+) -> None:
+    """
+    Log workflow execution events.
+    
+    Args:
+        workflow_name: Name of the workflow (e.g., "applicant_analysis")
+        event_type: Type of event that triggered the workflow (e.g., "resume_upload")
+        event_data: The event data that triggered the workflow
+        status: Status of the workflow ("started", "completed", "failed", "error")
+        result: Result of the workflow execution (if applicable)
+    """
+    log_audit_event(
+        action=f"workflow_{status}",
+        resource_type="workflow_execution",
+        resource_id=f"{workflow_name}/{event_type}",
+        initiated_by=f"{workflow_name}_workflow",
+        reason=f"Processing {event_type} event",
+        metadata={
+            "workflow_name": workflow_name,
+            "event_type": event_type,
+            "status": status,
+            "event_data": event_data,
+            "result": result
+        }
+    )
+

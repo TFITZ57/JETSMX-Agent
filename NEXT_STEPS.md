@@ -101,23 +101,46 @@ python scripts/setup_pubsub.py
 chmod +x scripts/deploy_cloud_run.sh
 ./scripts/deploy_cloud_run.sh
 
-# 3. Setup Gmail watch (must run every 7 days)
+# 3. Setup Gmail watch with automated renewal
 python scripts/setup_gmail_watch.py
+
+# 4. Setup automated Gmail watch renewal (runs every 6 days)
+WEBHOOK_URL=$(gcloud run services describe jetsmx-webhooks --region us-central1 --format='value(status.url)')
+SERVICE_ACCOUNT="jetsmx-hr-agent@jetsmx-agent.iam.gserviceaccount.com"
+python scripts/setup_gmail_watch_scheduler.py $WEBHOOK_URL $SERVICE_ACCOUNT
 ```
 
-### Phase 5: External Webhook Configuration (20 mins)
+### Phase 5: Airtable Webhooks API Integration (15 mins)
 After Cloud Run deployment, you'll get URLs like:
 - `https://jetsmx-webhooks-xxxxx.run.app`
 
-- [ ] **Configure Airtable Webhook**:
-  - Go to your base → Settings → Webhooks
-  - Add webhook: `https://YOUR-WEBHOOK-URL/webhooks/airtable/applicant_pipeline`
-  - Watch table: `applicant_pipeline`
-  - Trigger on: Record updates
+- [ ] **Add webhook URL to .env**:
+  ```bash
+  WEBHOOK_BASE_URL=https://jetsmx-webhooks-xxxxx.run.app
+  ```
+
+- [ ] **Auto-sync Airtable webhooks** (programmatic subscription):
+  ```bash
+  # Preview what will be created
+  python scripts/sync_airtable_webhooks.py --dry-run
+  
+  # Create webhook subscriptions
+  python scripts/sync_airtable_webhooks.py
+  ```
+  
+  This reads `SCHEMA/event_routing.yaml` and auto-creates webhooks for all tables.
+  **Copy the MAC secret from output to your .env file!**
 
 - [ ] **Configure Drive Watch** (if using file uploads):
   - Set watch on resume folder
   - Point to: `https://YOUR-WEBHOOK-URL/webhooks/drive`
+
+**Note**: Airtable webhooks expire after 7 days. Refresh them:
+```bash
+python scripts/refresh_airtable_webhooks.py
+```
+
+See `docs/AIRTABLE_WEBHOOKS_GUIDE.md` for full details.
 
 ### Phase 6: Testing (30 mins)
 ```bash
@@ -144,10 +167,15 @@ python scripts/setup_pubsub.py
 ./scripts/deploy_cloud_run.sh
 python scripts/setup_gmail_watch.py
 
-# 3. Test end-to-end
+# 3. Setup automated Gmail watch renewal
+WEBHOOK_URL=$(gcloud run services describe jetsmx-webhooks --region us-central1 --format='value(status.url)')
+SERVICE_ACCOUNT="jetsmx-hr-agent@jetsmx-agent.iam.gserviceaccount.com"
+python scripts/setup_gmail_watch_scheduler.py $WEBHOOK_URL $SERVICE_ACCOUNT
+
+# 4. Test end-to-end
 python scripts/test_workflows.py all
 
-# 4. Monitor logs
+# 5. Monitor logs
 gcloud logging read "resource.type=cloud_run_revision" --limit 50
 ```
 
@@ -197,7 +225,8 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 **Gmail watch not working:**
 - Verify domain-wide delegation is configured
 - Check topic permissions allow Gmail to publish
-- Watch expires after 7 days - re-run `setup_gmail_watch.py`
+- Check Cloud Scheduler job status: `gcloud scheduler jobs describe gmail-watch-renewal --location=us-central1`
+- Manually trigger renewal if needed: `gcloud scheduler jobs run gmail-watch-renewal --location=us-central1`
 
 **Airtable webhook not triggering:**
 - Verify webhook URL is publicly accessible
@@ -213,7 +242,7 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 - Check Pub/Sub dead letter queues
 
 ### Weekly
-- Renew Gmail watch (auto-expires after 7 days)
+- Review Cloud Scheduler logs for Gmail watch renewal status
 - Review interaction logs in Airtable
 
 ### Monthly

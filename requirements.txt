@@ -15,6 +15,7 @@ pyairtable>=2.1.0
 # Cloud Services
 google-cloud-pubsub>=2.18.0
 google-cloud-storage>=2.10.0
+google-cloud-scheduler>=2.11.0
 
 # Web Framework
 fastapi>=0.104.0

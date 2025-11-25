@@ -30,7 +30,7 @@ logger = setup_logger(__name__)
 settings = get_settings()
 
 # Initialize Vertex AI
-vertexai.init(project=settings.google_cloud_project_id, location=settings.google_cloud_region or "us-central1")
+vertexai.init(project=settings.gcp_project_id, location=settings.vertex_ai_location)
 
 # System instruction for the agent
 SYSTEM_INSTRUCTION = """You are the Applicant Analysis Agent for JetsMX, an AOG (Aircraft On Ground) aviation maintenance company.

@@ -4,8 +4,9 @@ Event router that processes Pub/Sub messages and invokes agent workflows.
 import yaml
 from typing import Dict, Any
 from pathlib import Path
-from agents.applicant_analysis.agent import get_applicant_analysis_agent
-from agents.hr_pipeline.agent import get_hr_pipeline_agent
+# Commented out until agents are ready
+# from agents.applicant_analysis.agent_adk import get_applicant_analysis_agent
+# from agents.hr_pipeline.agent import get_hr_pipeline_agent
 from infra.pubsub_handlers.handlers.drive_handler import handle_drive_event
 from infra.pubsub_handlers.handlers.gmail_handler import handle_gmail_event
 from tools.airtable.pipeline import find_pipeline_by_thread_id
@@ -45,8 +46,10 @@ def route_airtable_event(event_data: Dict[str, Any]) -> Dict[str, Any]:
             if new_values.get("screening_decision") == "Approve":
                 if not new_values.get("email_draft_generated"):
                     logger.info("Triggering outreach draft generation")
-                    hr_agent = get_hr_pipeline_agent()
-                    return hr_agent.generate_outreach_draft(record_id)
+                    # TODO: Implement when HR pipeline agent is ready
+                    # hr_agent = get_hr_pipeline_agent()
+                    # return hr_agent.generate_outreach_draft(record_id)
+                    return {"status": "pending", "reason": "HR agent not yet implemented"}
         
         # Check for interview completion
         if "Pipeline Stage" in changed_fields:

@@ -8,10 +8,9 @@ REGION="us-central1"
 
 echo "Deploying JetsMX Cloud Run services..."
 
-# Deploy webhook receiver
+# Deploy webhook receiver (build from project root)
 echo "Building and deploying webhook receiver..."
-cd infra/webhooks
-gcloud builds submit --tag gcr.io/${PROJECT_ID}/jetsmx-webhooks
+gcloud builds submit --config=infra/webhooks/cloudbuild.yaml .
 gcloud run deploy jetsmx-webhooks \
   --image gcr.io/${PROJECT_ID}/jetsmx-webhooks \
   --platform managed \
@@ -22,10 +21,9 @@ gcloud run deploy jetsmx-webhooks \
 WEBHOOK_URL=$(gcloud run services describe jetsmx-webhooks --platform managed --region ${REGION} --format 'value(status.url)')
 echo "Webhook receiver deployed: ${WEBHOOK_URL}"
 
-# Deploy Pub/Sub handler
+# Deploy Pub/Sub handler (build from project root)
 echo "Building and deploying Pub/Sub handler..."
-cd ../pubsub_handlers
-gcloud builds submit --tag gcr.io/${PROJECT_ID}/jetsmx-pubsub-handler
+gcloud builds submit --config=infra/pubsub_handlers/cloudbuild.yaml .
 gcloud run deploy jetsmx-pubsub-handler \
   --image gcr.io/${PROJECT_ID}/jetsmx-pubsub-handler \
   --platform managed \

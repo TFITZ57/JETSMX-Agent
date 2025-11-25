@@ -1,10 +1,11 @@
 """
 FastAPI webhook receiver for external events.
 """
+import os
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 import uvicorn
-from infra.webhooks.routes import airtable, gmail, drive, chat
+from infra.webhooks.routes import airtable, gmail, drive, chat, scheduler
 from infra.webhooks.middleware import setup_middleware
 from shared.logging.logger import setup_logger
 from shared.config.settings import get_settings
@@ -27,6 +28,7 @@ app.include_router(airtable.router, prefix="/webhooks/airtable", tags=["airtable
 app.include_router(gmail.router, prefix="/webhooks/gmail", tags=["gmail"])
 app.include_router(drive.router, prefix="/webhooks/drive", tags=["drive"])
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
+app.include_router(scheduler.router, prefix="/internal/scheduler", tags=["scheduler"])
 
 
 @app.get("/")

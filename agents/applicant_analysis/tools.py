@@ -28,7 +28,7 @@ logger = setup_logger(__name__)
 settings = get_settings()
 
 # Initialize Vertex AI
-vertexai.init(project=settings.google_cloud_project_id, location=settings.google_cloud_region or "us-central1")
+vertexai.init(project=settings.gcp_project_id, location=settings.vertex_ai_location)
 
 
 def download_resume_from_drive(file_id: str) -> Dict[str, Any]:

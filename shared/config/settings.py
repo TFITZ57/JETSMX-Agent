@@ -21,8 +21,9 @@ class Settings(BaseSettings):
     gcp_service_account_json_path: str = Field(default="./google-service-account-keys.json")
     
     # Airtable
-    airtable_api_key: str = Field(...)
-    airtable_base_id: str = Field(...)
+    airtable_api_key: str = Field(default="")
+    airtable_base_id: str = Field(default="")
+    airtable_webhook_secret: Optional[str] = Field(default=None)  # macSecretBase64 from webhook
     
     # Gmail Configuration
     gmail_user_email: str = Field(default="jobs@jetstreammx.com")
@@ -51,6 +52,7 @@ class Settings(BaseSettings):
     
     # Cloud Run (for webhooks)
     webhook_secret: Optional[str] = Field(default=None)
+    webhook_base_url: Optional[str] = Field(default=None)  # https://jetsmx-webhooks-xxx.run.app
     
     # Vertex AI
     vertex_ai_location: str = Field(default="us-central1")

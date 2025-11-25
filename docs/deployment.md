@@ -59,13 +59,50 @@ This deploys:
 - **Webhook Receiver**: Public-facing endpoint for webhooks
 - **Pub/Sub Handler**: Internal service for processing events
 
-### 5. Configure Gmail Watch
+### 5. Configure Gmail Watch & Automated Renewal
+
+#### Initial Setup
 
 ```bash
 python scripts/setup_gmail_watch.py
 ```
 
-**Note**: Gmail watch expires after 7 days and must be renewed.
+#### Automated Renewal with Cloud Scheduler
+
+Gmail watch expires after 7 days, so set up Cloud Scheduler to automatically renew it every 6 days:
+
+```bash
+# Get your Cloud Run service URL
+WEBHOOK_URL=$(gcloud run services describe jetsmx-webhooks --region us-central1 --format='value(status.url)')
+
+# Get your service account email (use existing service account)
+SERVICE_ACCOUNT="jetsmx-hr-agent@jetsmx-agent.iam.gserviceaccount.com"
+
+# Setup the scheduler
+python scripts/setup_gmail_watch_scheduler.py $WEBHOOK_URL $SERVICE_ACCOUNT
+```
+
+This creates a Cloud Scheduler job that:
+- Runs every 6 days at midnight UTC
+- POSTs to `/internal/scheduler/renew-gmail-watch` on your Cloud Run service
+- Uses OIDC authentication for secure internal calls
+- Retries up to 3 times with exponential backoff on failure
+
+**Monitoring the Scheduler:**
+
+```bash
+# List scheduler jobs
+gcloud scheduler jobs list --location=us-central1
+
+# View job details
+gcloud scheduler jobs describe gmail-watch-renewal --location=us-central1
+
+# Manually trigger for testing
+gcloud scheduler jobs run gmail-watch-renewal --location=us-central1
+
+# Check logs
+gcloud logging read "resource.type=cloud_run_revision AND jsonPayload.message=~'Gmail watch'" --limit 10
+```
 
 ### 6. Configure External Webhooks
 
@@ -147,7 +184,9 @@ View in Google Cloud Console:
 - Check topic permissions
 - Verify service account has domain-wide delegation
 - Ensure Gmail API is enabled
-- Renew watch (expires after 7 days)
+- Check Cloud Scheduler job status: `gcloud scheduler jobs describe gmail-watch-renewal --location=us-central1`
+- Verify automatic renewal is working: Check logs for renewal messages
+- Manually trigger renewal if needed: `gcloud scheduler jobs run gmail-watch-renewal --location=us-central1`
 
 ### Webhooks Not Triggering
 

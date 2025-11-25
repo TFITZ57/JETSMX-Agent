@@ -5,11 +5,13 @@
 ### 1️⃣ Create .env File (5 mins)
 
 **Option A: Interactive (Recommended)**
+
 ```bash
 python scripts/setup_env.py
 ```
 
 **Option B: Manual**
+
 ```bash
 cp env.template .env
 nano .env  # or code .env
@@ -17,15 +19,15 @@ nano .env  # or code .env
 
 ### 2️⃣ Get These Credentials
 
-| Credential | Where to Get It | Status |
-|------------|----------------|--------|
-| **AIRTABLE_API_KEY** | https://airtable.com/create/tokens | 🔴 REQUIRED |
-| **AIRTABLE_BASE_ID** | From your base URL | 🔴 REQUIRED |
-| **GOOGLE_CHAT_SPACE_ID** | Create Chat space, get ID | 🔴 REQUIRED |
-| **DRIVE_FOLDER_RESUMES_INCOMING** | Create Drive folder, copy ID from URL | 🔴 REQUIRED |
-| **DRIVE_FOLDER_TRANSCRIPTS_PROBE** | Create Drive folder, copy ID from URL | 🔴 REQUIRED |
-| **DRIVE_FOLDER_TRANSCRIPTS_INTERVIEW** | Create Drive folder, copy ID from URL | 🔴 REQUIRED |
-| **WEBHOOK_SECRET** | `openssl rand -base64 32` | 🟡 RECOMMENDED |
+| Credential                                   | Where to Get It                       | Status         |
+| -------------------------------------------- | ------------------------------------- | -------------- |
+| **AIRTABLE_API_KEY**                   | https://airtable.com/create/tokens    | 🔴 REQUIRED    |
+| **AIRTABLE_BASE_ID**                   | From your base URL                    | 🔴 REQUIRED    |
+| **GOOGLE_CHAT_SPACE_ID**               | Create Chat space, get ID             | 🔴 REQUIRED    |
+| **DRIVE_FOLDER_RESUMES_INCOMING**      | Create Drive folder, copy ID from URL | 🔴 REQUIRED    |
+| **DRIVE_FOLDER_TRANSCRIPTS_PROBE**     | Create Drive folder, copy ID from URL | 🔴 REQUIRED    |
+| **DRIVE_FOLDER_TRANSCRIPTS_INTERVIEW** | Create Drive folder, copy ID from URL | 🔴 REQUIRED    |
+| **WEBHOOK_SECRET**                     | `openssl rand -base64 32`           | 🟡 RECOMMENDED |
 
 ### 3️⃣ Verify Setup (2 mins)
 
@@ -58,11 +60,11 @@ python scripts/setup_gmail_watch.py
 
 ## Files Created for You
 
-✅ **env.template** - Template with all environment variables  
-✅ **NEXT_STEPS.md** - Complete deployment guide  
-✅ **CREDENTIALS_NEEDED.md** - Detailed credential instructions  
-✅ **SETUP_SUMMARY.md** - This quick reference (you are here)  
-✅ **scripts/setup_env.py** - Interactive env setup script  
+✅ **env.template** - Template with all environment variables
+✅ **NEXT_STEPS.md** - Complete deployment guide
+✅ **CREDENTIALS_NEEDED.md** - Detailed credential instructions
+✅ **SETUP_SUMMARY.md** - This quick reference (you are here)
+✅ **scripts/setup_env.py** - Interactive env setup script
 
 ---
 
@@ -125,19 +127,23 @@ pytest tests/unit/
 ## Common Issues
 
 **"No module named 'shared'"**
+
 ```bash
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 ```
 
 **"google-service-account-keys.json not found"**
+
 - Make sure the file exists in project root
 - Check `GCP_SERVICE_ACCOUNT_JSON_PATH` in `.env`
 
 **"Invalid Airtable credentials"**
+
 - Verify API token at https://airtable.com/create/tokens
 - Ensure token has full access to your base
 
 **"Permission denied" on Cloud Run**
+
 - Check service account has `roles/run.admin`
 - Run: `gcloud auth list` to verify authentication
 
@@ -145,17 +151,17 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 
 ## Deployment Checklist
 
-- [ ] `.env` file created with all credentials
-- [ ] `google-service-account-keys.json` exists
-- [ ] Dependencies installed: `pip install -r requirements.txt`
-- [ ] Airtable base created with required tables
-- [ ] Drive folders created and IDs copied
-- [ ] Google Chat space created and ID copied
-- [ ] Google Cloud APIs enabled (Run, Pub/Sub, Vertex AI, Workspace APIs)
-- [ ] Service account has domain-wide delegation
-- [ ] Pub/Sub topics created: `python scripts/setup_pubsub.py`
-- [ ] Cloud Run services deployed: `./scripts/deploy_cloud_run.sh`
-- [ ] Gmail watch configured: `python scripts/setup_gmail_watch.py`
+- [X] `.env` file created with all credentials
+- [X] `google-service-account-keys.json` exists
+- [X] Dependencies installed: `pip install -r requirements.txt`
+- [X] Airtable base created with required tables
+- [X] Drive folders created and IDs copied
+- [X] Google Chat space created and ID copied
+- [X] Google Cloud APIs enabled (Run, Pub/Sub, Vertex AI, Workspace APIs)
+- [X] Service account has domain-wide delegation
+- [X] Pub/Sub topics created: `python scripts/setup_pubsub.py`
+- [X] Cloud Run services deployed: `./scripts/deploy_cloud_run.sh`
+- [X] Gmail watch configured: `python scripts/setup_gmail_watch.py`
 - [ ] Airtable webhook pointing to Cloud Run URL
 - [ ] Tests passing: `pytest tests/`
 
@@ -202,6 +208,7 @@ The system runs automatically:
 5. All actions logged to `interactions` table
 
 Human approval required for:
+
 - Sending emails
 - Scheduling calls
 - High-risk actions
@@ -221,4 +228,3 @@ python scripts/setup_pubsub.py
 ```
 
 System will be live and processing events.
-

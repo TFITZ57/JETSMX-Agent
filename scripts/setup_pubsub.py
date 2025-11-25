@@ -40,9 +40,8 @@ def create_subscriptions():
     subscriber = pubsub_v1.SubscriberClient()
     project_id = settings.gcp_project_id
     
-    # These would be the Cloud Run service URLs
-    # In production, you'd get these from deployment or config
-    base_url = "https://pubsub-handler-XXXXX-uc.a.run.app"  # Replace with actual URL
+    # Cloud Run service URL from deployment
+    base_url = "https://jetsmx-pubsub-handler-627328068532.us-central1.run.app"
     
     subscriptions = [
         {
@@ -99,10 +98,9 @@ if __name__ == "__main__":
         create_topics()
         logger.info("Topics created successfully")
         
-        # Note: Subscriptions should be created after Cloud Run services are deployed
-        # Uncomment when you have the Cloud Run URLs
-        # create_subscriptions()
-        # logger.info("Subscriptions created successfully")
+        # Create subscriptions with push endpoints to Cloud Run
+        create_subscriptions()
+        logger.info("Subscriptions created successfully")
         
         logger.info("Pub/Sub setup complete!")
         
