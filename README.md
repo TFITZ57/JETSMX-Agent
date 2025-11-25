@@ -1,4 +1,4 @@
-# JetsMX Agent Framework
+# JetsMX Agent
 
 Multi-agent system for JetstreamMX LLC, an AOG aircraft maintenance company operating in the U.S. Northeast.
 
