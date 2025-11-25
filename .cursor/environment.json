@@ -1,0 +1,8 @@
+{
+  "build": {
+    "context": ".",
+    "dockerfile": "Dockerfile"
+  },
+  "install": "cd /workspace/JETSMX AGENT FRAMEWORK && pip install -r requirements.txt",
+  "start": "cd /workspace/JETSMX AGENT FRAMEWORK && python -m jetsmx_agent.bootstrap && python -m jetsmx_agent.main"
+}

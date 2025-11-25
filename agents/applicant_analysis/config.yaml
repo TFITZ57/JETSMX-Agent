@@ -1,0 +1,91 @@
+# Applicant Analysis Agent Configuration - Google ADK
+
+agent_name: "applicant_analysis_agent"
+display_name: "JetsMX Applicant Analysis Agent"
+description: "Analyzes resumes and generates Initial Candidate Coverage (ICC) reports for AOG technician candidates"
+version: "1.0.0-adk"
+
+# Model configuration for Vertex AI Agent Builder
+model:
+  provider: "vertex_ai"
+  name: "gemini-1.5-pro"
+  temperature: 0.2
+  max_output_tokens: 8192
+  top_p: 0.95
+
+# System instruction
+system_instruction: |
+  You are the Applicant Analysis Agent for JetsMX, an AOG (Aircraft On Ground) aviation maintenance company.
+  
+  Your role is to process resumes for on-call A&P technician positions. You have access to tools for:
+  1. Downloading resumes from Google Drive
+  2. Parsing and extracting structured data
+  3. Analyzing candidate fit using company requirements
+  4. Creating applicant records in Airtable
+  5. Generating Initial Candidate Coverage (ICC) reports
+  6. Publishing completion events
+  
+  WORKFLOW STEPS:
+  For each resume, you MUST execute these steps in order:
+  1. Download the resume PDF from Google Drive using the file_id
+  2. Parse the PDF to extract text, contact info, A&P license details, and experience
+  3. Analyze the candidate's fit for JetsMX AOG positions
+  4. Create Applicant and Applicant Pipeline records in Airtable
+  5. Generate an ICC PDF report
+  6. Upload the ICC PDF to Drive and update the Applicant record
+  7. Publish a completion event to Pub/Sub
+  
+  KEY REQUIREMENTS FOR JETSMX CANDIDATES:
+  - FAA A&P license (required)
+  - Business aviation experience (strongly preferred)
+  - AOG/field service experience (highly valuable)
+  - Mobile/on-call availability
+  - Geographic flexibility within NE corridor
+  - Relevant aircraft type experience (Gulfstream, Citation, Hawker, Falcon, etc.)
+  
+  Always prioritize accuracy and completeness. Document missing information clearly.
+
+# ADK Tools
+tools:
+  - name: download_resume_from_drive
+    description: "Download resume PDF from Google Drive"
+  - name: parse_resume_text
+    description: "Parse resume and extract structured data"
+  - name: analyze_candidate_fit
+    description: "Analyze candidate suitability for AOG positions"
+  - name: create_applicant_records_in_airtable
+    description: "Create Applicant and Pipeline records in Airtable"
+  - name: generate_icc_pdf
+    description: "Generate Initial Candidate Coverage PDF report"
+  - name: upload_icc_to_drive
+    description: "Upload ICC PDF to Drive and update Applicant record"
+  - name: publish_completion_event
+    description: "Publish completion event to Pub/Sub"
+
+# Agent execution configuration
+agent_executor:
+  max_iterations: 15
+  early_stopping_method: "generate"
+  return_intermediate_steps: true
+
+# Workflow settings
+workflow:
+  max_retries: 3
+  timeout_seconds: 600
+  enable_logging: true
+  enable_audit: true
+
+# Deployment settings
+deployment:
+  project_id: "${GCP_PROJECT_ID}"
+  location: "us-central1"
+  staging_bucket: "${GCP_STAGING_BUCKET}"
+  requirements:
+    - "google-cloud-aiplatform>=1.40.0"
+    - "langchain>=0.1.0"
+    - "langchain-google-vertexai>=0.1.0"
+    - "pyairtable>=2.1.0"
+    - "pdfplumber>=0.10.3"
+    - "reportlab>=4.0.0"
+    - "google-cloud-pubsub>=2.18.0"
+

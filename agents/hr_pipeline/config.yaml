@@ -1,0 +1,31 @@
+# HR Pipeline Agent Configuration
+
+agent_name: "hr_pipeline_agent"
+description: "Manages hiring pipeline workflows with human-in-the-loop approvals"
+
+# Model configuration
+model:
+  provider: "vertex_ai"
+  name: "gemini-1.5-pro"
+  temperature: 0.5
+  max_tokens: 2048
+
+# Tool permissions
+tools:
+  - airtable_get_pipeline
+  - airtable_update_pipeline
+  - airtable_log_interaction
+  - gmail_create_draft
+  - gmail_send_draft
+  - gmail_get_message
+  - calendar_create_event
+  - calendar_find_free_slots
+  - chat_post_approval_card
+  - chat_post_notification
+
+# Workflow settings
+workflow:
+  max_retries: 3
+  timeout_seconds: 300
+  require_approval: true
+

@@ -1,0 +1,181 @@
+events:
+  - name: "airtable_applicant_pipeline_updated"
+    source: "airtable"
+    endpoint: "/webhooks/airtable/applicant_pipeline"
+    payload_schema:
+      fields:
+        - "table_id"
+        - "record_id"
+        - "changed_fields"
+        - "new_values"
+        - "old_values"
+    routing_rules:
+      - condition: |
+          table_id == "applicant_pipeline"
+          and "Screening Decision" in changed_fields
+          and new_values["Screening Decision"] == "Approve"
+          and not new_values.get("Email Draft Generated?", False)
+        action:
+          graph: "hr_pipeline_graph"
+          entry_node: "generate_outreach_draft"
+          state:
+            applicant_pipeline_id: "record_id"
+            trigger: "SCREENING_APPROVED"
+
+      - condition: |
+          table_id == "applicant_pipeline"
+          and "Pipeline Stage" in changed_fields
+          and new_values["Pipeline Stage"] == "Interview Complete"
+          and not new_values.get("Contractor Created?", False)
+        action:
+          graph: "hr_pipeline_graph"
+          entry_node: "post_interview_decision_prompt"
+          state:
+            applicant_pipeline_id: "record_id"
+            trigger: "INTERVIEW_COMPLETE"
+
+      - condition: |
+          table_id == "applicant_pipeline"
+          and "Background Check Status" in changed_fields
+          and new_values["Background Check Status"] == "Passed"
+          and not new_values.get("Contractor Created?", False)
+        action:
+          graph: "hr_pipeline_graph"
+          entry_node: "create_contractor_record"
+          state:
+            applicant_pipeline_id: "record_id"
+            trigger: "BACKGROUND_CHECK_PASSED"
+
+  - name: "gmail_message_received"
+    source: "gmail"
+    endpoint: "/webhooks/gmail"
+    payload_schema:
+      fields:
+        - "thread_id"
+        - "message_id"
+        - "from"
+        - "to"
+        - "subject"
+        - "body_text"
+        - "received_at"
+    routing_rules:
+      - condition: |
+          # Only process replies to known outreach threads
+          find_pipeline_by_thread_id(thread_id) is not None
+        action:
+          graph: "hr_pipeline_graph"
+          entry_node: "parse_applicant_email_reply"
+          state:
+            thread_id: "thread_id"
+            message_id: "message_id"
+            body_text: "body_text"
+            received_at: "received_at"
+            applicant_pipeline_id: "lookup_pipeline(thread_id)"
+            trigger: "APPLICANT_EMAIL_REPLY"
+
+  - name: "drive_file_created"
+    source: "drive"
+    endpoint: "/webhooks/drive"  # or internal poller
+    payload_schema:
+      fields:
+        - "file_id"
+        - "name"
+        - "mime_type"
+        - "parents"
+        - "created_time"
+    routing_rules:
+      - condition: |
+          file_in_folder("Transcripts - Probe Calls", parents)
+        action:
+          graph: "meeting_analysis_graph"
+          entry_node: "analyze_probe_transcript"
+          state:
+            file_id: "file_id"
+            filename: "name"
+            applicant_pipeline_id: "extract_pipeline_id_from_filename(name)"
+            trigger: "PROBE_TRANSCRIPT_UPLOADED"
+
+      - condition: |
+          file_in_folder("Transcripts - Interviews", parents)
+        action:
+          graph: "meeting_analysis_graph"
+          entry_node: "analyze_interview_transcript"
+          state:
+            file_id: "file_id"
+            filename: "name"
+            applicant_pipeline_id: "extract_pipeline_id_from_filename(name)"
+            trigger: "INTERVIEW_TRANSCRIPT_UPLOADED"
+
+  - name: "chat_command"
+    source: "google_chat"
+    endpoint: "/chat/command"
+    payload_schema:
+      fields:
+        - "space"
+        - "user"
+        - "command"
+        - "args"
+        - "timestamp"
+    routing_rules:
+      - condition: |
+          command == "/probe"
+        action:
+          graph: "hr_pipeline_graph"
+          entry_node: "schedule_probe_call"
+          state:
+            applicant_identifier: "args"  # name or record id
+            user_id: "user"
+            trigger: "CHAT_SCHEDULE_PROBE"
+
+      - condition: |
+          command == "/interview"
+        action:
+          graph: "hr_pipeline_graph"
+          entry_node: "schedule_interview"
+          state:
+            applicant_identifier: "args"
+            user_id: "user"
+            trigger: "CHAT_SCHEDULE_INTERVIEW"
+
+      - condition: |
+          command == "/applicant"
+        action:
+          graph: "chat_orchestrator_graph"
+          entry_node: "lookup_applicant_profile"
+          state:
+            applicant_identifier: "args"
+            user_id: "user"
+            trigger: "CHAT_QUERY_APPLICANT"
+
+workflows:
+  - name: "resume_processor_graph"
+    description: "Processes resumes from Drive, generates ICC, and populates Applicants + Applicant Pipeline"
+    entry_points:
+      - "process_new_resume"
+    inputs:
+      - "file_id"
+      - "filename"
+    outputs:
+      - "applicant_id"
+      - "pipeline_id"
+
+  - name: "hr_pipeline_graph"
+    description: "Handles pipeline transitions, email drafts, scheduling, and contractor creation"
+    entry_points:
+      - "generate_outreach_draft"
+      - "parse_applicant_email_reply"
+      - "schedule_probe_call"
+      - "schedule_interview"
+      - "post_interview_decision_prompt"
+      - "create_contractor_record"
+
+  - name: "meeting_analysis_graph"
+    description: "Analyzes probe and interview transcripts and updates Airtable records"
+    entry_points:
+      - "analyze_probe_transcript"
+      - "analyze_interview_transcript"
+
+  - name: "chat_orchestrator_graph"
+    description: "Conversational layer for querying applicant data and nudging HR actions via Chat"
+    entry_points:
+      - "lookup_applicant_profile"

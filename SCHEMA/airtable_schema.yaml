@@ -1,0 +1,495 @@
+airtable_base:
+  name: "JetsMX Talent & Contractors"
+  id: "appXXXXXXXXXXXXXX"  # optional placeholder
+
+  tables:
+    - name: "Applicants"
+      api_name: "applicants"
+      description: "Master record for each human applicant"
+      fields:
+        - name: "Applicant Name"
+          api_name: "applicant_name"
+          type: "singleLineText"
+          is_primary: true
+
+        # Contact
+        - name: "Email"
+          api_name: "email"
+          type: "email"
+        - name: "Phone"
+          api_name: "phone"
+          type: "phoneNumber"
+        - name: "Location"
+          api_name: "location"
+          type: "singleLineText"  # "City, ST"
+        - name: "Time Zone"
+          api_name: "time_zone"
+          type: "singleSelect"
+          options: ["America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "Other"]
+
+        # Files
+        - name: "Resume Drive File ID"
+          api_name: "resume_drive_file_id"
+          type: "singleLineText"
+        - name: "Resume Link"
+          api_name: "resume_link"
+          type: "url"
+        - name: "ICC PDF Drive File ID"
+          api_name: "icc_pdf_drive_file_id"
+          type: "singleLineText"
+        - name: "ICC PDF Link"
+          api_name: "icc_pdf_link"
+          type: "url"
+
+        # Licensing / Compliance
+        - name: "Has FAA A&P"
+          api_name: "has_faa_ap"
+          type: "checkbox"
+        - name: "FAA A&P #"
+          api_name: "faa_ap_number"
+          type: "singleLineText"
+        - name: "Other Certs"
+          api_name: "other_certs"
+          type: "longText"
+
+        # Experience & Fit
+        - name: "Years in Aviation"
+          api_name: "years_in_aviation"
+          type: "number"
+        - name: "Business Aviation Experience"
+          api_name: "business_aviation_experience"
+          type: "checkbox"
+        - name: "AOG / Field Experience"
+          api_name: "aog_field_experience"
+          type: "checkbox"
+        - name: "Primary Aircraft Families"
+          api_name: "primary_aircraft_families"
+          type: "linkToAnotherRecord"
+          link:
+            table: "Aircraft Types"
+            relationship: "many"
+        - name: "Engine Families"
+          api_name: "engine_families"
+          type: "linkToAnotherRecord"
+          link:
+            table: "Engine Families"
+            relationship: "many"
+        - name: "Geographic Flexibility"
+          api_name: "geographic_flexibility"
+          type: "singleSelect"
+          options: ["Local-only", "NE Corridor", "US-wide"]
+        - name: "On-call AOG Suitability Score"
+          api_name: "aog_suitability_score"
+          type: "number"
+        - name: "Baseline Verdict"
+          api_name: "baseline_verdict"
+          type: "singleSelect"
+          options: ["Strong Fit", "Maybe", "Not a Fit", "Needs More Info"]
+        - name: "Missing Info Summary"
+          api_name: "missing_info_summary"
+          type: "longText"
+        - name: "Follow-up Questions"
+          api_name: "follow_up_questions"
+          type: "longText"
+
+        # Process Links
+        - name: "Pipeline Record"
+          api_name: "pipeline_record"
+          type: "linkToAnotherRecord"
+          link:
+            table: "Applicant Pipeline"
+            relationship: "one"
+        - name: "Contractor Record"
+          api_name: "contractor_record"
+          type: "linkToAnotherRecord"
+          link:
+            table: "Contractors"
+            relationship: "zeroOrOne"
+        - name: "Interactions"
+          api_name: "interactions"
+          type: "linkToAnotherRecord"
+          link:
+            table: "Interactions"
+            relationship: "many"
+
+        # Meta
+        - name: "Source"
+          api_name: "source"
+          type: "singleSelect"
+          options: ["Drive Resume", "Referral", "Job Board", "Website", "Other"]
+        - name: "Created At"
+          api_name: "created_at"
+          type: "createdTime"
+        - name: "Last Updated"
+          api_name: "last_updated"
+          type: "lastModifiedTime"
+
+    - name: "Applicant Pipeline"
+      api_name: "applicant_pipeline"
+      description: "Funnel stage and automation trigger state per applicant"
+      fields:
+        - name: "Applicant"
+          api_name: "applicant"
+          type: "linkToAnotherRecord"
+          link:
+            table: "Applicants"
+            relationship: "one"
+        - name: "Applicant Name"
+          api_name: "applicant_name"
+          type: "lookup"
+          lookup:
+            table: "Applicants"
+            field: "Applicant Name"
+        - name: "Primary Email"
+          api_name: "primary_email"
+          type: "lookup"
+          lookup:
+            table: "Applicants"
+            field: "Email"
+
+        # Status & Stages
+        - name: "Pipeline Stage"
+          api_name: "pipeline_stage"
+          type: "singleSelect"
+          options:
+            - "New"
+            - "Profile Generated"
+            - "HR Screen – Approved"
+            - "HR Screen – Denied"
+            - "Outreach Draft Created"
+            - "Initial Email Sent"
+            - "Awaiting Applicant Reply"
+            - "Applicant Responded"
+            - "Phone Probe Scheduled"
+            - "Phone Probe Complete"
+            - "Video Interview Scheduled"
+            - "Interview Complete"
+            - "Background Check – Pending"
+            - "Background Check – Passed"
+            - "Background Check – Failed"
+            - "Ready for Contractor Onboarding"
+            - "Archived / Not a Fit"
+        - name: "Stage Last Updated"
+          api_name: "stage_last_updated"
+          type: "lastModifiedTime"
+          config:
+            watched_fields: ["Pipeline Stage"]
+
+        # Screening Gate
+        - name: "Screening Decision"
+          api_name: "screening_decision"
+          type: "singleSelect"
+          options: ["Approve", "Deny", "Needs Review"]
+        - name: "Screening Notes"
+          api_name: "screening_notes"
+          type: "longText"
+
+        # Email Thread
+        - name: "Outreach Email Draft ID"
+          api_name: "outreach_email_draft_id"
+          type: "singleLineText"
+        - name: "Outreach Thread ID"
+          api_name: "outreach_thread_id"
+          type: "singleLineText"
+        - name: "Initial Email Sent At"
+          api_name: "initial_email_sent_at"
+          type: "dateTime"
+        - name: "Last Reply Received At"
+          api_name: "last_reply_received_at"
+          type: "dateTime"
+        - name: "Last Reply Summary"
+          api_name: "last_reply_summary"
+          type: "longText"
+
+        # Availability from Email
+        - name: "Preferred Call Window 1"
+          api_name: "preferred_call_window_1"
+          type: "singleLineText"
+        - name: "Preferred Call Window 2"
+          api_name: "preferred_call_window_2"
+          type: "singleLineText"
+        - name: "Confirmed Phone Number"
+          api_name: "confirmed_phone_number"
+          type: "phoneNumber"
+        - name: "Constraints"
+          api_name: "constraints"
+          type: "longText"
+
+        # Probe Call
+        - name: "Probe Call Calendar Event ID"
+          api_name: "probe_call_event_id"
+          type: "singleLineText"
+        - name: "Probe Call DateTime"
+          api_name: "probe_call_datetime"
+          type: "dateTime"
+        - name: "Probe Call Meet Link"
+          api_name: "probe_call_meet_link"
+          type: "url"
+        - name: "Probe Call Transcript Drive File ID"
+          api_name: "probe_call_transcript_file_id"
+          type: "singleLineText"
+        - name: "Probe Call Transcript Link"
+          api_name: "probe_call_transcript_link"
+          type: "url"
+
+        # Interview
+        - name: "Interview Event ID"
+          api_name: "interview_event_id"
+          type: "singleLineText"
+        - name: "Interview DateTime"
+          api_name: "interview_datetime"
+          type: "dateTime"
+        - name: "Interview Meet Link"
+          api_name: "interview_meet_link"
+          type: "url"
+        - name: "Interview Transcript Drive File ID"
+          api_name: "interview_transcript_file_id"
+          type: "singleLineText"
+        - name: "Interview Transcript Link"
+          api_name: "interview_transcript_link"
+          type: "url"
+
+        # Background Check / Compliance
+        - name: "Run Background Check"
+          api_name: "run_background_check"
+          type: "checkbox"
+        - name: "Background Check Status"
+          api_name: "background_check_status"
+          type: "singleSelect"
+          options: ["Not Started", "In Progress", "Passed", "Failed"]
+        - name: "Background Check Notes"
+          api_name: "background_check_notes"
+          type: "longText"
+
+        # Automation Guardrails
+        - name: "Email Draft Generated?"
+          api_name: "email_draft_generated"
+          type: "checkbox"
+        - name: "Initial Chat Notified?"
+          api_name: "initial_chat_notified"
+          type: "checkbox"
+        - name: "Probe Chat Notified?"
+          api_name: "probe_chat_notified"
+          type: "checkbox"
+        - name: "Interview Chat Notified?"
+          api_name: "interview_chat_notified"
+          type: "checkbox"
+        - name: "Contractor Created?"
+          api_name: "contractor_created"
+          type: "checkbox"
+
+    - name: "Interactions"
+      api_name: "interactions"
+      description: "Chronological log of all applicant-related interactions and events"
+      fields:
+        - name: "Interaction Type"
+          api_name: "interaction_type"
+          type: "singleSelect"
+          options: ["System", "Email", "Phone Call", "Video Interview", "Chat Note"]
+        - name: "Direction"
+          api_name: "direction"
+          type: "singleSelect"
+          options: ["Inbound", "Outbound", "System"]
+        - name: "Channel"
+          api_name: "channel"
+          type: "singleSelect"
+          options: ["Gmail", "Calendar", "Drive", "Chat", "Manual"]
+        - name: "Applicant"
+          api_name: "applicant"
+          type: "linkToAnotherRecord"
+          link:
+            table: "Applicants"
+            relationship: "many"
+        - name: "Timestamp"
+          api_name: "timestamp"
+          type: "dateTime"
+        - name: "Source Reference"
+          api_name: "source_reference"
+          type: "singleLineText"
+        - name: "Summary"
+          api_name: "summary"
+          type: "longText"
+        - name: "Created By"
+          api_name: "created_by"
+          type: "singleSelect"
+          options: ["HR Agent", "JetsMX AGENT", "Tyler", "James", "John", "Other"]
+
+    - name: "Contractors"
+      api_name: "contractors"
+      description: "Onboarded and approved on-call technicians"
+      fields:
+        - name: "Contractor ID"
+          api_name: "contractor_id"
+          type: "singleLineText"
+          is_primary: true
+        - name: "Applicant"
+          api_name: "applicant"
+          type: "linkToAnotherRecord"
+          link:
+            table: "Applicants"
+            relationship: "one"
+        - name: "Name"
+          api_name: "name"
+          type: "lookup"
+          lookup:
+            table: "Applicants"
+            field: "Applicant Name"
+        - name: "Email"
+          api_name: "email"
+          type: "lookup"
+          lookup:
+            table: "Applicants"
+            field: "Email"
+        - name: "Phone"
+          api_name: "phone"
+          type: "lookup"
+          lookup:
+            table: "Applicants"
+            field: "Phone"
+        - name: "Location"
+          api_name: "location"
+          type: "lookup"
+          lookup:
+            table: "Applicants"
+            field: "Location"
+
+        # Status
+        - name: "Contractor Status"
+          api_name: "contractor_status"
+          type: "singleSelect"
+          options: ["Onboarding", "Active", "Paused", "Inactive"]
+        - name: "Effective Date"
+          api_name: "effective_date"
+          type: "date"
+
+        # Licenses & Training
+        - name: "FAA A&P #"
+          api_name: "faa_ap_number"
+          type: "lookup"
+          lookup:
+            table: "Applicants"
+            field: "FAA A&P #"
+        - name: "A&P Verified?"
+          api_name: "ap_verified"
+          type: "checkbox"
+        - name: "OEM / Type Training"
+          api_name: "oem_type_training"
+          type: "longText"
+
+        # Compliance
+        - name: "D&A Program Enrolled?"
+          api_name: "da_program_enrolled"
+          type: "checkbox"
+        - name: "W-9 Received?"
+          api_name: "w9_received"
+          type: "checkbox"
+        - name: "Banking Info Received?"
+          api_name: "banking_info_received"
+          type: "checkbox"
+
+        # Operational
+        - name: "Primary Base Airport"
+          api_name: "primary_base_airport"
+          type: "linkToAnotherRecord"
+          link:
+            table: "Airports"
+            relationship: "one"
+        - name: "Max Travel Radius (nm)"
+          api_name: "max_travel_radius_nm"
+          type: "number"
+        - name: "Available for AOG?"
+          api_name: "available_for_aog"
+          type: "checkbox"
+        - name: "Preferred Shift"
+          api_name: "preferred_shift"
+          type: "multipleSelect"
+          options: ["Days", "Nights", "Weekends"]
+
+        # Skills & Scope
+        - name: "Aircraft Families"
+          api_name: "aircraft_families"
+          type: "linkToAnotherRecord"
+          link:
+            table: "Aircraft Types"
+            relationship: "many"
+        - name: "Engine Families"
+          api_name: "engine_families"
+          type: "linkToAnotherRecord"
+          link:
+            table: "Engine Families"
+            relationship: "many"
+        - name: "Systems Strengths"
+          api_name: "systems_strengths"
+          type: "multipleSelect"
+          options: ["Avionics", "Hydraulics", "Powerplant", "Structure", "Cabin"]
+
+        # Performance (future)
+        - name: "Last Job Date"
+          api_name: "last_job_date"
+          type: "date"
+        - name: "Jobs Completed"
+          api_name: "jobs_completed"
+          type: "number"
+        - name: "Quality Score"
+          api_name: "quality_score"
+          type: "number"
+
+    - name: "Aircraft Types"
+      api_name: "aircraft_types"
+      description: "Supported airframes and families"
+      fields:
+        - name: "Family"
+          api_name: "family"
+          type: "singleLineText"
+          is_primary: true
+        - name: "OEM"
+          api_name: "oem"
+          type: "singleLineText"
+        - name: "Jetstream Depth"
+          api_name: "jetstream_depth"
+          type: "singleSelect"
+          options: ["Core", "Familiar", "Peripheral"]
+        - name: "Notes"
+          api_name: "notes"
+          type: "longText"
+
+    - name: "Engine Families"
+      api_name: "engine_families"
+      description: "Engine families relevant to Jetstream AOG work"
+      fields:
+        - name: "Engine"
+          api_name: "engine"
+          type: "singleLineText"
+          is_primary: true
+        - name: "OEM"
+          api_name: "oem"
+          type: "singleLineText"
+        - name: "Notes"
+          api_name: "notes"
+          type: "longText"
+
+    - name: "Airports"
+      api_name: "airports"
+      description: "Base and coverage airports for dispatch planning"
+      fields:
+        - name: "ICAO"
+          api_name: "icao"
+          type: "singleLineText"
+          is_primary: true
+        - name: "Airport Name"
+          api_name: "airport_name"
+          type: "singleLineText"
+        - name: "State"
+          api_name: "state"
+          type: "singleLineText"
+        - name: "Distance from KBDR (nm)"
+          api_name: "distance_from_kbdr_nm"
+          type: "number"
+        - name: "Typical Demand"
+          api_name: "typical_demand"
+          type: "multipleSelect"
+          options: ["AOG", "Heavy MX", "Light Line"]
+        - name: "Priority"
+          api_name: "priority"
+          type: "singleSelect"
+          options: ["Core", "Extended"]

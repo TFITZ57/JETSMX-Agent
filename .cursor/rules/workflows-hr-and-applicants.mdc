@@ -1,0 +1,125 @@
+---
+alwaysApply: false
+---
+# JetsMX Agent – HR & Applicant Workflows
+
+This file describes the core HR workflows. Planning and implementation tasks should align with these steps.
+
+## Workflow 1 – Resume → Applicant Profile
+
+**Trigger**
+
+- New PDF resume added to a specific Drive folder (e.g., `HR/Resumes/Incoming`) via @Google Drive API.
+
+**Agent**
+
+- Applicant Analysis Agent.
+
+**Steps (high level)**
+
+1. Download the PDF resume.
+2. Extract text and basic contact info.
+3. Analyze using company context (job description, ideal candidate profile) to:
+   - Determine if they meet baseline criteria:
+     - A&P license present (or probable).
+     - Relevant aircraft/engine experience.
+     - On-call suitability for AOG work.
+   - Summarize aircraft/engine and system experience.
+   - Identify missing info and propose follow-up questions.
+4. Generate a standardized **Applicant Profile / Cover Page** (Markdown or HTML).
+5. Upload the cover page PDF back to Drive and store its file ID.
+6. Create/update records in Airtable (via @Airtable API):
+   - **Applicants**: contact info, A&P license, key experience.
+   - **Applicant Pipeline**: link to applicant, pipeline stage `PROFILE_GENERATED`, drive file IDs, timestamps.
+
+**Output**
+
+- Applicant and pipeline record IDs.
+- Drive IDs for resume and cover page.
+
+---
+
+## Workflow 2 – Human Review & Initial Email
+
+**Trigger**
+
+- In Airtable, a human clicks Approve/Deny in a Review Interface.
+- This maps to a status change on the Applicant Pipeline record (e.g., `REVIEW_DECISION = APPROVED`).
+
+**Agent**
+
+- HR Agent.
+
+**Steps**
+
+1. Detect Airtable change via webhook → Pub/Sub.
+2. If Approved and no initial email draft exists:
+   - Generate a personalized email draft from `jobs@jetstreammx.com` via @Gmail API.
+   - Email invites candidate to an initial phone probe and collects:
+     - Confirmed phone number.
+     - General availability window(s).
+3. Save draft and do **not** send automatically.
+4. Notify Tyler in Google Chat (via @Google Chat API) with:
+   - Applicant summary.
+   - Draft preview and “Approve / Edit / Cancel” actions (card).
+5. On approval, send the email and update Airtable:
+   - Pipeline status to `INITIAL_EMAIL_SENT`.
+   - Store Gmail thread ID.
+
+---
+
+## Workflow 3 – Parse Applicant Reply & Schedule Probe Call
+
+**Trigger**
+
+- New Gmail message in the applicant thread, detected via Gmail watch → Pub/Sub → HR Agent.
+
+**Steps**
+
+1. Fetch message body via @Gmail API.
+2. Parse for:
+   - Confirmed phone number.
+   - Proposed times / constraints.
+   - Questions or concerns.
+3. Post a summary to Tyler in Chat with suggested probe call times.
+4. When Tyler confirms a time (via Chat card button or manual input), create a Calendar event via @Google Calendar API:
+   - Title format: `"Probe Call – {Applicant Name}"`.
+   - Add Meet / phone bridge via @Google Meet REST API or Calendar integration.
+5. Update Airtable:
+   - Pipeline status `PROBE_SCHEDULED`.
+   - Event ID, Meet link, scheduled time.
+
+---
+
+## Workflow 4 – Probe Call → Updated Applicant Profile
+
+**Trigger**
+
+- Probe call completed and transcription/notes file added to a specific Drive folder (e.g., `HR/Transcripts/Probe Calls`).
+
+**Steps**
+
+1. Download transcript/notes from Drive.
+2. Analyze content to:
+   - Fill in missing fields (A&P number, locations, tooling, on-call constraints, pay range, red flags).
+   - Refine experience summary and suitability assessment.
+3. Update Airtable:
+   - **Applicants**: new structured data.
+   - **Applicant Pipeline**: status `PROBE_COMPLETE` with transcript Drive ID.
+4. Notify HR/hiring in Chat with a concise summary and decision checklist for the next step (interview, park, reject).
+
+---
+
+## Workflow 5 – Interview and Final Decision
+
+This is analogous to Workflow 4 but for video interviews:
+
+- Trigger: new transcript uploaded in `HR/Transcripts/Interviews`.
+- Steps:
+  - Analyze interview.
+  - Update on-call availability and overall recommendation.
+  - Set pipeline status `INTERVIEW_COMPLETE`.
+  - Human uses Airtable interface to Approve/Decline.
+  - On final approval, trigger contractor onboarding workflows (later + integration with QuickBooks).
+
+These workflows should be implemented as **separate graphs/agents** with clear entry points rather than as one giant chain.

@@ -1,0 +1,29 @@
+# Company Knowledge Base Agent Configuration
+
+agent_name: "company_kb_agent"
+description: "Conversational agent for querying company data (read-only)"
+
+# Model configuration
+model:
+  provider: "vertex_ai"
+  name: "gemini-1.5-pro"
+  temperature: 0.7
+  max_tokens: 2048
+
+# Tool permissions (read-only tools)
+tools:
+  - airtable_get_applicant
+  - airtable_get_pipeline
+  - airtable_find_applicants
+  - gmail_get_message
+  - gmail_get_thread
+  - gmail_list_threads
+  - calendar_list_events
+  - drive_get_file_metadata
+  - drive_list_files_in_folder
+
+# Workflow settings
+workflow:
+  max_iterations: 10
+  timeout_seconds: 60
+
