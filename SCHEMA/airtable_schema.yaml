@@ -377,52 +377,24 @@ airtable_base:
           type: "longText"
 
         # Compliance
-        - name: "D&A Program Enrolled?"
+        - name: "D&A Program enrolled?"
           api_name: "da_program_enrolled"
           type: "checkbox"
-        - name: "W-9 Received?"
-          api_name: "w9_received"
-          type: "checkbox"
-        - name: "Banking Info Received?"
-          api_name: "banking_info_received"
+        - name: "W-9 on-file?"
+          api_name: "w9_on_file"
           type: "checkbox"
 
         # Operational
-        - name: "Primary Base Airport"
-          api_name: "primary_base_airport"
-          type: "linkToAnotherRecord"
-          link:
-            table: "Airports"
-            relationship: "one"
-        - name: "Max Travel Radius (nm)"
-          api_name: "max_travel_radius_nm"
-          type: "number"
-        - name: "Available for AOG?"
-          api_name: "available_for_aog"
-          type: "checkbox"
+        - name: "On-Call Availability"
+          api_name: "on-call-availability"
+          type: "multipleSelect"
+          options: ["mon", "tues", "wed", "thu", "fri", "sat", "sun"]
         - name: "Preferred Shift"
           api_name: "preferred_shift"
           type: "multipleSelect"
           options: ["Days", "Nights", "Weekends"]
 
-        # Skills & Scope
-        - name: "Aircraft Families"
-          api_name: "aircraft_families"
-          type: "linkToAnotherRecord"
-          link:
-            table: "Aircraft Types"
-            relationship: "many"
-        - name: "Engine Families"
-          api_name: "engine_families"
-          type: "linkToAnotherRecord"
-          link:
-            table: "Engine Families"
-            relationship: "many"
-        - name: "Systems Strengths"
-          api_name: "systems_strengths"
-          type: "multipleSelect"
-          options: ["Avionics", "Hydraulics", "Powerplant", "Structure", "Cabin"]
-
+       
         # Performance (future)
         - name: "Last Job Date"
           api_name: "last_job_date"
@@ -433,63 +405,3 @@ airtable_base:
         - name: "Quality Score"
           api_name: "quality_score"
           type: "number"
-
-    - name: "Aircraft Types"
-      api_name: "aircraft_types"
-      description: "Supported airframes and families"
-      fields:
-        - name: "Family"
-          api_name: "family"
-          type: "singleLineText"
-          is_primary: true
-        - name: "OEM"
-          api_name: "oem"
-          type: "singleLineText"
-        - name: "Jetstream Depth"
-          api_name: "jetstream_depth"
-          type: "singleSelect"
-          options: ["Core", "Familiar", "Peripheral"]
-        - name: "Notes"
-          api_name: "notes"
-          type: "longText"
-
-    - name: "Engine Families"
-      api_name: "engine_families"
-      description: "Engine families relevant to Jetstream AOG work"
-      fields:
-        - name: "Engine"
-          api_name: "engine"
-          type: "singleLineText"
-          is_primary: true
-        - name: "OEM"
-          api_name: "oem"
-          type: "singleLineText"
-        - name: "Notes"
-          api_name: "notes"
-          type: "longText"
-
-    - name: "Airports"
-      api_name: "airports"
-      description: "Base and coverage airports for dispatch planning"
-      fields:
-        - name: "ICAO"
-          api_name: "icao"
-          type: "singleLineText"
-          is_primary: true
-        - name: "Airport Name"
-          api_name: "airport_name"
-          type: "singleLineText"
-        - name: "State"
-          api_name: "state"
-          type: "singleLineText"
-        - name: "Distance from KBDR (nm)"
-          api_name: "distance_from_kbdr_nm"
-          type: "number"
-        - name: "Typical Demand"
-          api_name: "typical_demand"
-          type: "multipleSelect"
-          options: ["AOG", "Heavy MX", "Light Line"]
-        - name: "Priority"
-          api_name: "priority"
-          type: "singleSelect"
-          options: ["Core", "Extended"]

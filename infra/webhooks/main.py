@@ -16,7 +16,7 @@ settings = get_settings()
 # Create FastAPI app
 app = FastAPI(
     title="JetsMX Webhook Receiver",
-    description="Receives webhooks from Airtable, Gmail, Drive, and Chat",
+    description="Receives webhooks from Airtable, Gmail, Drive, and Chat. Provides HTTP endpoint for Applicant Analysis Agent.",
     version="1.0.0"
 )
 
@@ -29,6 +29,14 @@ app.include_router(gmail.router, prefix="/webhooks/gmail", tags=["gmail"])
 app.include_router(drive.router, prefix="/webhooks/drive", tags=["drive"])
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
 app.include_router(scheduler.router, prefix="/internal/scheduler", tags=["scheduler"])
+
+# Try to import and register agent router
+try:
+    from infra.webhooks.routes import agent
+    app.include_router(agent.router, prefix="/agent", tags=["agent"])
+    logger.info("✓ Agent router registered successfully")
+except Exception as e:
+    logger.error(f"✗ Failed to register agent router: {str(e)}", exc_info=True)
 
 
 @app.get("/")

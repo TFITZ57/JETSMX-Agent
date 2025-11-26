@@ -5,10 +5,10 @@ display_name: "JetsMX Applicant Analysis Agent"
 description: "Analyzes resumes and generates Initial Candidate Coverage (ICC) reports for AOG technician candidates"
 version: "1.0.0-adk"
 
-# Model configuration for Vertex AI Agent Builder
+# Model configuration for OpenAI
 model:
-  provider: "vertex_ai"
-  name: "gemini-1.5-pro"
+  provider: "openai"
+  name: "gpt-4-turbo"  # gpt-5.1 doesn't exist yet
   temperature: 0.2
   max_output_tokens: 8192
   top_p: 0.95

@@ -77,3 +77,9 @@ class InteractionsHandler(BaseWebhookHandler):
             "webhook_id": payload.get("webhookId")
         }
 
+
+
+
+
+
+

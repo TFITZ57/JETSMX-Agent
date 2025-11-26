@@ -4,11 +4,11 @@ Event router that processes Pub/Sub messages and invokes agent workflows.
 import yaml
 from typing import Dict, Any
 from pathlib import Path
-# Commented out until agents are ready
-# from agents.applicant_analysis.agent_adk import get_applicant_analysis_agent
-# from agents.hr_pipeline.agent import get_hr_pipeline_agent
+from agents.applicant_analysis.agent_adk import get_applicant_analysis_agent
+from agents.hr_pipeline.agent import get_hr_pipeline_agent
 from infra.pubsub_handlers.handlers.drive_handler import handle_drive_event
 from infra.pubsub_handlers.handlers.gmail_handler import handle_gmail_event
+from infra.pubsub_handlers.handlers.airtable_commands_handler import handle_airtable_command
 from tools.airtable.pipeline import find_pipeline_by_thread_id
 from shared.logging.logger import setup_logger
 
@@ -46,10 +46,8 @@ def route_airtable_event(event_data: Dict[str, Any]) -> Dict[str, Any]:
             if new_values.get("screening_decision") == "Approve":
                 if not new_values.get("email_draft_generated"):
                     logger.info("Triggering outreach draft generation")
-                    # TODO: Implement when HR pipeline agent is ready
-                    # hr_agent = get_hr_pipeline_agent()
-                    # return hr_agent.generate_outreach_draft(record_id)
-                    return {"status": "pending", "reason": "HR agent not yet implemented"}
+                    hr_agent = get_hr_pipeline_agent()
+                    return hr_agent.generate_outreach_draft(record_id)
         
         # Check for interview completion
         if "Pipeline Stage" in changed_fields:
@@ -160,12 +158,39 @@ def route_chat_event(event_data: Dict[str, Any]) -> Dict[str, Any]:
     return {"status": "processed"}
 
 
+def route_airtable_command(event_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Route Airtable async commands from Pub/Sub.
+    
+    Args:
+        event_data: Airtable command data
+        
+    Returns:
+        Command execution result
+    """
+    command_type = event_data.get('command_type', '')
+    command_id = event_data.get('command_id', 'unknown')
+    
+    logger.info(f"Routing Airtable command: type={command_type}, id={command_id}")
+    
+    try:
+        result = handle_airtable_command(event_data)
+        return result
+    except Exception as e:
+        logger.error(f"Error routing Airtable command: {str(e)}", exc_info=True)
+        return {
+            "success": False,
+            "error": str(e),
+            "command_id": command_id
+        }
+
+
 def route_event(event_name: str, event_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Main event router.
     
     Args:
-        event_name: Name of the event (airtable, gmail, drive, chat)
+        event_name: Name of the event (airtable, gmail, drive, chat, airtable-commands)
         event_data: Event payload
         
     Returns:
@@ -174,7 +199,9 @@ def route_event(event_name: str, event_data: Dict[str, Any]) -> Dict[str, Any]:
     logger.info(f"Routing event: {event_name}")
     
     try:
-        if event_name == "airtable" or "airtable" in event_name:
+        if event_name == "airtable-commands" or "airtable_command" in event_name:
+            return route_airtable_command(event_data)
+        elif event_name == "airtable" or "airtable" in event_name:
             return route_airtable_event(event_data)
         elif event_name == "gmail" or "gmail" in event_name:
             return route_gmail_event(event_data)

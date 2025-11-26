@@ -1,15 +1,14 @@
 """
-Google ADK Tools for Applicant Analysis Agent.
+Tools for Applicant Analysis Agent.
 
-Pure Python functions for use with Vertex AI Agent.
+Pure Python functions for use with AI agents.
 Tools follow a consistent pattern: return Dict[str, Any] with success, data, and error fields.
 """
 import base64
 import json
 from typing import Dict, Any, Optional
 from datetime import datetime
-import vertexai
-from vertexai.generative_models import GenerativeModel
+from openai import OpenAI
 
 from tools.drive.files import download_file, upload_file
 from tools.airtable.applicants import create_applicant, update_applicant
@@ -27,8 +26,8 @@ from shared.config.settings import get_settings
 logger = setup_logger(__name__)
 settings = get_settings()
 
-# Initialize Vertex AI
-vertexai.init(project=settings.gcp_project_id, location=settings.vertex_ai_location)
+# Initialize OpenAI client
+openai_client = OpenAI(api_key=settings.openai_api_key)
 
 
 def download_resume_from_drive(file_id: str) -> Dict[str, Any]:
@@ -137,22 +136,20 @@ def analyze_candidate_fit(parsed_resume_data: str) -> Dict[str, Any]:
         else:
             parsed_data = parsed_resume_data
         
-        # Initialize Gemini model
-        model = GenerativeModel("gemini-1.5-pro")
-        
         # Build prompt combining system and user instructions
         prompt = build_analysis_prompt(parsed_data)
-        full_prompt = f"{SYSTEM_PROMPT}\n\n{prompt}"
         
-        # Get LLM response
-        response = model.generate_content(
-            full_prompt,
-            generation_config={
-                "temperature": 0.3,
-                "max_output_tokens": 2048,
-            }
+        # Get LLM response using OpenAI
+        response = openai_client.chat.completions.create(
+            model="gpt-4-turbo",  # Using GPT-4 Turbo (gpt-5.1 doesn't exist yet)
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.3,
+            max_tokens=2048
         )
-        response_text = response.text
+        response_text = response.choices[0].message.content
         
         # Parse JSON from response
         if "```json" in response_text:

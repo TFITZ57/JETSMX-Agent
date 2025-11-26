@@ -1,0 +1,36 @@
+---
+alwaysApply: true
+---
+# Agent Output Structure
+
+Use this repo-wide structure for all agent-generated markdown:
+
+- `docs/agents/state/`
+  - One **canonical state file per agent/scope**.
+  - File naming: `<agent>.STATE.md`
+    - e.g. `jetsmx_agent.STATE.md`, `hr_agent.STATE.md`.
+
+- `docs/agents/history/`
+  - **Snapshots only**, append-only log.
+  - File naming: `<agent>.<ISO_TIMESTAMP>.snapshot.md`
+    - e.g. `jetsmx_agent.2025-11-25T2105Z.snapshot.md`.
+
+- `docs/agents/scratch/`
+  - Temporary or debugging output.
+  - Safe to ignore for planning.
+
+- Root index: `AGENTS_INDEX.md`
+  - Lists which `*.STATE.md` files are current.
+  - Lists recent snapshots per agent.
+
+All agent state files must use a YAML frontmatter block:
+
+```yaml
+---
+doc_type: agent_state        # or agent_snapshot, agent_scratch
+agent: jetsmx_agent          # stable ID, not prose
+scope: hr_applicant_pipeline # short slug
+status: current              # or archived, scratch
+version: 7
+updated_at: 2025-11-25T21:05:00-05:00
+---

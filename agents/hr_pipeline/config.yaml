@@ -5,8 +5,8 @@ description: "Manages hiring pipeline workflows with human-in-the-loop approvals
 
 # Model configuration
 model:
-  provider: "vertex_ai"
-  name: "gemini-1.5-pro"
+  provider: "openai"
+  name: "gpt-5.1"
   temperature: 0.5
   max_tokens: 2048
 

@@ -17,9 +17,13 @@ class Settings(BaseSettings):
         env_ignore_empty=True  # Ignore empty env vars, use defaults instead
     )
     
+    # OpenAI
+    openai_api_key: str = Field(default="")
+    
     # Google Cloud Platform
     gcp_project_id: str = Field(default="jetsmx-agent")
     gcp_service_account_json_path: str = Field(default="./google-service-account-keys.json")
+    gcp_staging_bucket: str = Field(default="gs://jetsmx-agent-staging")
     
     # Airtable
     airtable_api_key: str = Field(default="")
@@ -53,10 +57,13 @@ class Settings(BaseSettings):
     
     # Cloud Run (for webhooks)
     webhook_secret: Optional[str] = Field(default=None)
-    webhook_base_url: Optional[str] = Field(default=None)  # https://jetsmx-webhooks-xxx.run.app
+    webhook_base_url: str = Field(default="https://jetsmx-webhooks-627328068532.us-central1.run.app")
     
     # Vertex AI
     vertex_ai_location: str = Field(default="us-central1")
+    
+    # OpenAI
+    openai_api_key: str = Field(default="")
 
 
 # Singleton instance

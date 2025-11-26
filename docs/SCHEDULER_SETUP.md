@@ -40,6 +40,33 @@ Every 5-6 days          /internal/scheduler/*      Gmail/Airtable APIs
 1. Cloud Scheduler API enabled
 2. Cloud Run service deployed (`jetsmx-webhooks`)
 3. Service account with OIDC token auth configured
+4. Service account key stored in Secret Manager (see Setup section)
+5. Gmail API service account granted Pub/Sub publisher permissions
+
+### Setup Service Account Secret (Required for Gmail Watch)
+
+The Gmail watch renewal requires domain-wide delegation, which needs the service account key file. Store it securely in Secret Manager:
+
+```bash
+# Create secret from service account key file
+gcloud secrets create service-account-key \
+  --data-file=google-service-account-keys.json \
+  --project=jetsmx-agent
+
+# Grant service account access to the secret
+gcloud secrets add-iam-policy-binding service-account-key \
+  --member="serviceAccount:jetsmx-hr-agent@jetsmx-agent.iam.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor" \
+  --project=jetsmx-agent
+
+# Grant Gmail API permission to publish to Pub/Sub topic
+gcloud pubsub topics add-iam-policy-binding jetsmx-gmail-events \
+  --member="serviceAccount:gmail-api-push@system.gserviceaccount.com" \
+  --role="roles/pubsub.publisher" \
+  --project=jetsmx-agent
+```
+
+The `deploy_cloud_run.sh` script automatically mounts this secret to Cloud Run services.
 
 ### Create Schedulers
 

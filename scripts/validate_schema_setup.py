@@ -73,7 +73,17 @@ def validate_schema_file():
             field_name = field.get('name', '<unnamed>')
             field_type = field.get('type', '<no-type>')
             
-            if field_type in AirtableSchemaSetup.BASIC_FIELD_TYPES:
+            # Define basic field types inline
+            BASIC_FIELD_TYPES = {
+                'singleLineText', 'email', 'phoneNumber', 'multilineText',
+                'number', 'percent', 'currency', 'singleSelect', 'multipleSelects',
+                'date', 'dateTime', 'duration', 'checkbox', 'url', 'rating',
+                'richText', 'attachment', 'barcode', 'button'
+            }
+            RELATIONSHIP_TYPES = {'linkToAnotherRecord', 'lookup'}
+            UNSUPPORTED_TYPES = {'createdTime', 'lastModifiedTime', 'createdBy', 'lastModifiedBy'}
+            
+            if field_type in BASIC_FIELD_TYPES:
                 basic_fields.append(field_name)
             elif field_type == 'linkToAnotherRecord':
                 link_fields.append(field_name)
@@ -87,6 +97,9 @@ def validate_schema_file():
                 lookup_config = field.get('lookup', {})
                 if 'table' not in lookup_config or 'field' not in lookup_config:
                     print(f"   ⚠ Lookup field '{field_name}' missing config")
+            elif field_type in UNSUPPORTED_TYPES:
+                # These are auto-generated fields, skip without warning
+                pass
             else:
                 unknown_fields.append((field_name, field_type))
         

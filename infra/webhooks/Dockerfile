@@ -1,4 +1,5 @@
 # Dockerfile for webhook receiver
+# Build: 2025-11-26 agent-endpoint-v3
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -14,6 +15,7 @@ RUN pip install --no-cache-dir -r infra/webhooks/requirements.txt
 # Copy application code (from project root)
 COPY shared/ shared/
 COPY tools/ tools/
+COPY agents/ agents/
 COPY infra/ infra/
 
 # Set environment

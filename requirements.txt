@@ -1,7 +1,13 @@
+# OpenAI
+openai>=1.0.0
+
 # Google ADK and Vertex AI
 google-cloud-aiplatform>=1.34.0
 google-generativeai>=0.3.0
 vertexai>=1.34.0
+
+# OpenAI
+openai>=1.0.0
 
 # Google Workspace APIs
 google-api-python-client>=2.100.0
@@ -42,4 +48,7 @@ pytest-mock>=3.12.0
 
 # Type hints
 typing-extensions>=4.8.0
+
+# Email validation (required by pydantic models)
+email-validator>=2.0.0
 

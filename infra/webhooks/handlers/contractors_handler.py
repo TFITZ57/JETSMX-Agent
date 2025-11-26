@@ -117,3 +117,9 @@ class ContractorsHandler(BaseWebhookHandler):
             "webhook_id": payload.get("webhookId")
         }
 
+
+
+
+
+
+

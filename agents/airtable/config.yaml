@@ -1,0 +1,65 @@
+agent:
+  name: "airtable_agent"
+  display_name: "JetsMX Airtable Agent"
+  description: "Central data orchestration layer for all Airtable interactions"
+  version: "1.0.0"
+
+capabilities:
+  conversational: true
+  programmatic: true
+  bulk_operations: true
+  export: true
+  analytics: true
+
+llm:
+  provider: "openai"  # or "gemini"
+  model: "gpt-4o"
+  temperature: 0.1
+  max_tokens: 4000
+
+operations:
+  max_batch_size: 100
+  query_timeout_seconds: 30
+  export_max_records: 10000
+  
+security:
+  require_audit_log: true
+  sensitive_tables:
+    - "Contractors"
+    - "Applicant Pipeline"
+  read_only_mode: false
+
+tables:
+  applicants:
+    api_name: "Applicants"
+    primary_key: "Applicant Name"
+    searchable_fields:
+      - "Applicant Name"
+      - "Email"
+      - "Phone"
+      - "Location"
+    
+  applicant_pipeline:
+    api_name: "Applicant Pipeline"
+    primary_key: "Applicant Name"
+    searchable_fields:
+      - "Applicant Name"
+      - "Primary Email"
+      - "Pipeline Stage"
+    
+  contractors:
+    api_name: "Contractors"
+    primary_key: "Contractor ID"
+    searchable_fields:
+      - "Contractor ID"
+      - "Name"
+      - "Email"
+    
+  interactions:
+    api_name: "Interactions"
+    primary_key: null
+    searchable_fields:
+      - "Interaction Type"
+      - "Applicant"
+      - "Summary"
+

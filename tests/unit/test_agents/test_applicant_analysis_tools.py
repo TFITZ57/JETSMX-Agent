@@ -29,7 +29,7 @@ class TestDownloadResumeFromDrive:
         mock_download.return_value = mock_content
         
         # Execute
-        result = download_resume_from_drive.invoke({"file_id": "test_file_123"})
+        result = download_resume_from_drive(file_id="test_file_123")
         
         # Assert
         assert result['success'] is True
@@ -48,7 +48,7 @@ class TestDownloadResumeFromDrive:
         mock_download.return_value = None
         
         # Execute
-        result = download_resume_from_drive.invoke({"file_id": "bad_file"})
+        result = download_resume_from_drive(file_id="bad_file")
         
         # Assert
         assert result['success'] is False
@@ -62,7 +62,7 @@ class TestDownloadResumeFromDrive:
         mock_download.side_effect = Exception("Network error")
         
         # Execute
-        result = download_resume_from_drive.invoke({"file_id": "test_file"})
+        result = download_resume_from_drive(file_id="test_file")
         
         # Assert
         assert result['success'] is False
@@ -115,13 +115,10 @@ class TestParseResumeText:
 class TestAnalyzeCandidateFit:
     """Tests for analyze_candidate_fit tool."""
     
-    @patch('agents.applicant_analysis.tools.ChatVertexAI')
-    def test_successful_analysis(self, mock_llm_class):
+    @patch('agents.applicant_analysis.tools.openai_client')
+    def test_successful_analysis(self, mock_client):
         """Test successful candidate analysis."""
         # Setup
-        mock_llm = MagicMock()
-        mock_llm_class.return_value = mock_llm
-        
         analysis_result = {
             'applicant_name': 'John Doe',
             'baseline_verdict': 'Strong Fit',
@@ -132,8 +129,10 @@ class TestAnalyzeCandidateFit:
         }
         
         mock_response = MagicMock()
-        mock_response.content = json.dumps(analysis_result)
-        mock_llm.invoke.return_value = mock_response
+        mock_message = MagicMock()
+        mock_message.content = json.dumps(analysis_result)
+        mock_response.choices = [MagicMock(message=mock_message)]
+        mock_client.chat.completions.create.return_value = mock_response
         
         parsed_data = {
             'raw_text': 'Resume text...',
@@ -142,9 +141,7 @@ class TestAnalyzeCandidateFit:
         }
         
         # Execute
-        result = analyze_candidate_fit.invoke({
-            "parsed_resume_data": json.dumps(parsed_data)
-        })
+        result = analyze_candidate_fit(parsed_resume_data=json.dumps(parsed_data))
         
         # Assert
         assert result['success'] is True
@@ -152,25 +149,22 @@ class TestAnalyzeCandidateFit:
         assert result['analysis']['baseline_verdict'] == 'Strong Fit'
         assert result['error'] is None
     
-    @patch('agents.applicant_analysis.tools.ChatVertexAI')
-    def test_analysis_with_json_markdown(self, mock_llm_class):
+    @patch('agents.applicant_analysis.tools.openai_client')
+    def test_analysis_with_json_markdown(self, mock_client):
         """Test analysis with JSON in markdown code blocks."""
         # Setup
-        mock_llm = MagicMock()
-        mock_llm_class.return_value = mock_llm
-        
         analysis_result = {'applicant_name': 'Jane Smith', 'baseline_verdict': 'Maybe'}
         
         mock_response = MagicMock()
-        mock_response.content = f"```json\n{json.dumps(analysis_result)}\n```"
-        mock_llm.invoke.return_value = mock_response
+        mock_message = MagicMock()
+        mock_message.content = f"```json\n{json.dumps(analysis_result)}\n```"
+        mock_response.choices = [MagicMock(message=mock_message)]
+        mock_client.chat.completions.create.return_value = mock_response
         
         parsed_data = {'raw_text': 'Resume...'}
         
         # Execute
-        result = analyze_candidate_fit.invoke({
-            "parsed_resume_data": json.dumps(parsed_data)
-        })
+        result = analyze_candidate_fit(parsed_resume_data=json.dumps(parsed_data))
         
         # Assert
         assert result['success'] is True
@@ -202,11 +196,11 @@ class TestCreateApplicantRecordsInAirtable:
         }
         
         # Execute
-        result = create_applicant_records_in_airtable.invoke({
-            "parsed_data_json": json.dumps(parsed_data),
-            "analysis_json": json.dumps(analysis),
-            "resume_file_id": "file123"
-        })
+        result = create_applicant_records_in_airtable(
+            parsed_data_json=json.dumps(parsed_data),
+            analysis_json=json.dumps(analysis),
+            resume_file_id="file123"
+        )
         
         # Assert
         assert result['success'] is True
@@ -234,10 +228,10 @@ class TestGenerateICCPDF:
         analysis = {'baseline_verdict': 'Strong Fit', 'aog_suitability_score': 8}
         
         # Execute
-        result = generate_icc_pdf.invoke({
-            "parsed_data_json": json.dumps(parsed_data),
-            "analysis_json": json.dumps(analysis)
-        })
+        result = generate_icc_pdf(
+            parsed_data_json=json.dumps(parsed_data),
+            analysis_json=json.dumps(analysis)
+        )
         
         # Assert
         assert result['success'] is True
@@ -260,11 +254,11 @@ class TestUploadICCToDrive:
         pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
         
         # Execute
-        result = upload_icc_to_drive.invoke({
-            "pdf_content_base64": pdf_base64,
-            "applicant_name": "John Doe",
-            "applicant_id": "recAPP123"
-        })
+        result = upload_icc_to_drive(
+            pdf_content_base64=pdf_base64,
+            applicant_name="John Doe",
+            applicant_id="recAPP123"
+        )
         
         # Assert
         assert result['success'] is True
@@ -288,11 +282,11 @@ class TestPublishCompletionEvent:
         mock_publish.return_value = 'msg_12345'
         
         # Execute
-        result = publish_completion_event.invoke({
-            "applicant_id": "recAPP123",
-            "pipeline_id": "recPIPE456",
-            "baseline_verdict": "Strong Fit"
-        })
+        result = publish_completion_event(
+            applicant_id="recAPP123",
+            pipeline_id="recPIPE456",
+            baseline_verdict="Strong Fit"
+        )
         
         # Assert
         assert result['success'] is True

@@ -1,0 +1,46 @@
+---
+alwaysApply: true
+---
+
+# Agent Output Usage Rules
+
+## 1. Reading context
+
+- Before planning or editing anything:
+  - Open `AGENTS_INDEX.md`.
+  - Find your `agent` + `scope`.
+  - Use only the listed `docs/agents/state/*.STATE.md` file(s) as your primary context.
+- Do **not** scan the whole repo for random `.md` “state” files.
+- Only read `history/` or `scratch/` files if the user explicitly points to them.
+
+## 2. Writing updates
+
+When you make a meaningful change to an agent or workflow:
+
+1. **Create a snapshot** in `docs/agents/history/`:
+   - File name: `<agent>.<ISO_TIMESTAMP>.snapshot.md`.
+   - `doc_type: agent_snapshot`.
+   - Copy content from the latest state plus your changes.
+
+2. **Update the canonical state file** in `docs/agents/state/`:
+   - File name: `<agent>.STATE.md`.
+   - `doc_type: agent_state`.
+   - Set `status: current`.
+   - Bump `version` if present.
+   - Update `updated_at` with the current timestamp.
+
+3. Keep a short “Current Capabilities / TODO” section in each state file:
+   - List what is actually implemented (no speculative plans).
+   - List clear, non-duplicate TODOs.
+
+## 3. What to ignore
+
+- Do not treat **older snapshots** as current truth.
+- Do not create new “state-like” `.md` files outside `docs/agents/`.
+- Do not change `doc_type` or `agent`/`scope` of existing files unless correcting a clear mistake.
+
+## 4. Summary
+
+- **Single source of truth** per agent/scope: `docs/agents/state/*.STATE.md`.
+- **History preserved** in `docs/agents/history/`.
+- **Global routing** via `AGENTS_INDEX.md`.

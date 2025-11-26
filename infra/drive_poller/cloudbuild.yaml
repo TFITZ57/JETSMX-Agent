@@ -1,0 +1,6 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/jetsmx-drive-poller', '-f', 'infra/drive_poller/Dockerfile', '.']
+images:
+  - 'gcr.io/$PROJECT_ID/jetsmx-drive-poller'
+

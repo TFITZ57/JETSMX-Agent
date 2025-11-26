@@ -96,3 +96,9 @@ class ApplicantsHandler(BaseWebhookHandler):
             "webhook_id": payload.get("webhookId")
         }
 
+
+
+
+
+
+

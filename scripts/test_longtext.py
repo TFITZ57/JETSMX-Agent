@@ -32,3 +32,9 @@ try:
 except Exception as e:
     print(f"✗ Failed with empty options: {e}")
 
+
+
+
+
+
+

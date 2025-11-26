@@ -55,7 +55,7 @@ def mock_all_external_services(sample_resume_pdf, sample_parsed_data, sample_ana
     """Mock all external service calls."""
     with patch('agents.applicant_analysis.tools.download_file') as mock_download, \
          patch('agents.applicant_analysis.tools.parse_resume') as mock_parse, \
-         patch('agents.applicant_analysis.tools.ChatVertexAI') as mock_llm_class, \
+         patch('agents.applicant_analysis.tools.openai_client') as mock_openai, \
          patch('agents.applicant_analysis.tools.create_applicant') as mock_create_app, \
          patch('agents.applicant_analysis.tools.create_pipeline_record') as mock_create_pipe, \
          patch('agents.applicant_analysis.tools.log_interaction') as mock_log, \
@@ -68,11 +68,12 @@ def mock_all_external_services(sample_resume_pdf, sample_parsed_data, sample_ana
         mock_download.return_value = sample_resume_pdf
         mock_parse.return_value = sample_parsed_data
         
-        mock_llm = MagicMock()
+        # Mock OpenAI response
         mock_response = MagicMock()
-        mock_response.content = json.dumps(sample_analysis)
-        mock_llm.invoke.return_value = mock_response
-        mock_llm_class.return_value = mock_llm
+        mock_message = MagicMock()
+        mock_message.content = json.dumps(sample_analysis)
+        mock_response.choices = [MagicMock(message=mock_message)]
+        mock_openai.chat.completions.create.return_value = mock_response
         
         mock_create_app.return_value = 'recAPP12345'
         mock_create_pipe.return_value = 'recPIPE67890'
@@ -84,7 +85,7 @@ def mock_all_external_services(sample_resume_pdf, sample_parsed_data, sample_ana
         yield {
             'download': mock_download,
             'parse': mock_parse,
-            'llm': mock_llm,
+            'openai': mock_openai,
             'create_applicant': mock_create_app,
             'create_pipeline': mock_create_pipe,
             'log': mock_log,
@@ -100,7 +101,7 @@ class TestApplicantAnalysisAgentIntegration:
     
     def test_complete_workflow_success(self, mock_all_external_services):
         """Test complete resume processing workflow from start to finish."""
-        # This test would require the actual Vertex AI agent to be initialized
+        # This test would require the actual OpenAI agent to be initialized
         # For now, we'll test the components in sequence
         
         from agents.applicant_analysis.tools import (
@@ -114,55 +115,55 @@ class TestApplicantAnalysisAgentIntegration:
         )
         
         # Step 1: Download
-        download_result = download_resume_from_drive.invoke({"file_id": "test_file_123"})
+        download_result = download_resume_from_drive(file_id="test_file_123")
         assert download_result['success'] is True
         pdf_base64 = download_result['pdf_content_base64']
         
         # Step 2: Parse
-        parse_result = parse_resume_text.invoke({"pdf_content_base64": pdf_base64})
+        parse_result = parse_resume_text(pdf_content_base64=pdf_base64)
         assert parse_result['success'] is True
         parsed_data = parse_result['parsed_data']
         
         # Step 3: Analyze
-        analyze_result = analyze_candidate_fit.invoke({
-            "parsed_resume_data": json.dumps(parsed_data)
-        })
+        analyze_result = analyze_candidate_fit(
+            parsed_resume_data=json.dumps(parsed_data)
+        )
         assert analyze_result['success'] is True
         analysis = analyze_result['analysis']
         
         # Step 4: Create Airtable records
-        create_result = create_applicant_records_in_airtable.invoke({
-            "parsed_data_json": json.dumps(parsed_data),
-            "analysis_json": json.dumps(analysis),
-            "resume_file_id": "test_file_123"
-        })
+        create_result = create_applicant_records_in_airtable(
+            parsed_data_json=json.dumps(parsed_data),
+            analysis_json=json.dumps(analysis),
+            resume_file_id="test_file_123"
+        )
         assert create_result['success'] is True
         assert create_result['applicant_id'] == 'recAPP12345'
         assert create_result['pipeline_id'] == 'recPIPE67890'
         
         # Step 5: Generate ICC
-        icc_result = generate_icc_pdf.invoke({
-            "parsed_data_json": json.dumps(parsed_data),
-            "analysis_json": json.dumps(analysis)
-        })
+        icc_result = generate_icc_pdf(
+            parsed_data_json=json.dumps(parsed_data),
+            analysis_json=json.dumps(analysis)
+        )
         assert icc_result['success'] is True
         icc_base64 = icc_result['pdf_content_base64']
         
         # Step 6: Upload ICC
-        upload_result = upload_icc_to_drive.invoke({
-            "pdf_content_base64": icc_base64,
-            "applicant_name": "John Doe",
-            "applicant_id": create_result['applicant_id']
-        })
+        upload_result = upload_icc_to_drive(
+            pdf_content_base64=icc_base64,
+            applicant_name="John Doe",
+            applicant_id=create_result['applicant_id']
+        )
         assert upload_result['success'] is True
         assert upload_result['file_id'] == 'fileICC_123'
         
         # Step 7: Publish event
-        publish_result = publish_completion_event.invoke({
-            "applicant_id": create_result['applicant_id'],
-            "pipeline_id": create_result['pipeline_id'],
-            "baseline_verdict": analysis['baseline_verdict']
-        })
+        publish_result = publish_completion_event(
+            applicant_id=create_result['applicant_id'],
+            pipeline_id=create_result['pipeline_id'],
+            baseline_verdict=analysis['baseline_verdict']
+        )
         assert publish_result['success'] is True
         assert publish_result['message_id'] == 'msgID_789'
         
@@ -189,13 +190,13 @@ class TestApplicantAnalysisAgentIntegration:
         mock_all_external_services['parse'].return_value = None
         
         # Step 1: Download succeeds
-        download_result = download_resume_from_drive.invoke({"file_id": "test_file"})
+        download_result = download_resume_from_drive(file_id="test_file")
         assert download_result['success'] is True
         
         # Step 2: Parse fails
-        parse_result = parse_resume_text.invoke({
-            "pdf_content_base64": download_result['pdf_content_base64']
-        })
+        parse_result = parse_resume_text(
+            pdf_content_base64=download_result['pdf_content_base64']
+        )
         assert parse_result['success'] is False
         assert 'Failed to parse' in parse_result['error']
     
@@ -210,18 +211,18 @@ class TestApplicantAnalysisAgentIntegration:
         parsed_data = {'raw_text': 'test', 'email': 'test@example.com'}
         
         # Test with dict (will be converted to JSON string by tool)
-        result1 = analyze_candidate_fit.invoke({
-            "parsed_resume_data": json.dumps(parsed_data)
-        })
+        result1 = analyze_candidate_fit(
+            parsed_resume_data=json.dumps(parsed_data)
+        )
         assert result1['success'] is True
         
         # Test create_applicant_records with JSON strings
         analysis = {'applicant_name': 'Test', 'baseline_verdict': 'Maybe'}
-        result2 = create_applicant_records_in_airtable.invoke({
-            "parsed_data_json": json.dumps(parsed_data),
-            "analysis_json": json.dumps(analysis),
-            "resume_file_id": "file123"
-        })
+        result2 = create_applicant_records_in_airtable(
+            parsed_data_json=json.dumps(parsed_data),
+            analysis_json=json.dumps(analysis),
+            resume_file_id="file123"
+        )
         assert result2['success'] is True
 
 
@@ -265,7 +266,7 @@ class TestAgentErrorHandling:
         mock_download.side_effect = Exception("Drive API error")
         
         # Execute
-        result = download_resume_from_drive.invoke({"file_id": "bad_file"})
+        result = download_resume_from_drive(file_id="bad_file")
         
         # Assert - should return error result, not raise exception
         assert result['success'] is False
@@ -287,12 +288,12 @@ class TestAgentErrorHandling:
         tools_results = []
         
         # Download
-        result = download_resume_from_drive.invoke({"file_id": "test"})
+        result = download_resume_from_drive(file_id="test")
         tools_results.append(result)
         
         # Parse
         pdf_base64 = base64.b64encode(b'test').decode('utf-8')
-        result = parse_resume_text.invoke({"pdf_content_base64": pdf_base64})
+        result = parse_resume_text(pdf_content_base64=pdf_base64)
         tools_results.append(result)
         
         # All results should have consistent structure

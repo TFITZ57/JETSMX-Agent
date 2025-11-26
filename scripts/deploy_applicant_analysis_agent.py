@@ -58,38 +58,41 @@ def deploy_agent(
     # Initialize Vertex AI
     init(project=project_id, location=location, staging_bucket=staging_bucket)
     
-    # Create agent instance
-    logger.info("Creating agent instance...")
-    agent = ApplicantAnalysisAgent()
-    agent_engine = agent._create_agent()
-    
-    # Define requirements
+    # Define requirements (only essential packages for ADK agent)
     requirements = [
-        "google-cloud-aiplatform>=1.40.0",
-        "langchain>=0.1.0",
-        "langchain-core>=0.1.0",
-        "langchain-google-vertexai>=0.1.0",
+        "google-cloud-aiplatform[reasoningengine]>=1.40.0",
         "pyairtable>=2.1.0",
         "google-api-python-client>=2.100.0",
         "google-auth>=2.23.0",
         "google-cloud-pubsub>=2.18.0",
+        "google-cloud-storage>=2.10.0",
         "pdfplumber>=0.10.3",
         "PyPDF2>=3.0.1",
         "reportlab>=4.0.0",
         "pydantic>=2.5.0",
-        "python-dotenv>=1.0.0"
+        "python-dotenv>=1.0.0",
+        "cloudpickle>=3.0.0"
     ]
     
     # Deploy to Vertex AI
     logger.info("Deploying to Vertex AI (this may take several minutes)...")
     
+    # Package local modules
+    import os
+    extra_packages = [
+        os.path.join(project_root, "tools"),
+        os.path.join(project_root, "shared"),
+        os.path.join(project_root, "agents"),
+    ]
+    
     try:
         deployed_agent = reasoning_engines.ReasoningEngine.create(
-            agent_engine,
+            ApplicantAnalysisAgent,
             requirements=requirements,
             display_name="jetsmx-applicant-analysis-agent",
             description="Processes resumes and generates applicant profiles for JetsMX hiring workflow",
-            sys_version="3.11"
+            sys_version="3.11",
+            extra_packages=extra_packages
         )
         
         logger.info(f"✓ Agent deployed successfully!")

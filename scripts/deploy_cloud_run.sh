@@ -24,7 +24,8 @@ gcloud run deploy jetsmx-webhooks \
   --platform managed \
   --region ${REGION} \
   --allow-unauthenticated \
-  --set-env-vars GCP_PROJECT_ID=${PROJECT_ID},AIRTABLE_API_KEY=${AIRTABLE_API_KEY},AIRTABLE_BASE_ID=${AIRTABLE_BASE_ID},WEBHOOK_BASE_URL=${WEBHOOK_BASE_URL},GMAIL_USER_EMAIL=${GMAIL_USER_EMAIL},GOOGLE_CHAT_SPACE_ID=${GOOGLE_CHAT_SPACE_ID}
+  --set-env-vars GCP_PROJECT_ID=${PROJECT_ID},AIRTABLE_API_KEY=${AIRTABLE_API_KEY},AIRTABLE_BASE_ID=${AIRTABLE_BASE_ID},WEBHOOK_BASE_URL=${WEBHOOK_BASE_URL},GMAIL_USER_EMAIL=${GMAIL_USER_EMAIL},GOOGLE_CHAT_SPACE_ID=${GOOGLE_CHAT_SPACE_ID},GCP_SERVICE_ACCOUNT_JSON_PATH=/secrets/google-service-account-keys.json \
+  --update-secrets=/secrets/google-service-account-keys.json=service-account-key:latest
 
 WEBHOOK_URL=$(gcloud run services describe jetsmx-webhooks --platform managed --region ${REGION} --format 'value(status.url)')
 echo "Webhook receiver deployed: ${WEBHOOK_URL}"
@@ -37,7 +38,8 @@ gcloud run deploy jetsmx-pubsub-handler \
   --platform managed \
   --region ${REGION} \
   --no-allow-unauthenticated \
-  --set-env-vars GCP_PROJECT_ID=${PROJECT_ID},AIRTABLE_API_KEY=${AIRTABLE_API_KEY},AIRTABLE_BASE_ID=${AIRTABLE_BASE_ID},GMAIL_USER_EMAIL=${GMAIL_USER_EMAIL},GOOGLE_CHAT_SPACE_ID=${GOOGLE_CHAT_SPACE_ID}
+  --set-env-vars GCP_PROJECT_ID=${PROJECT_ID},AIRTABLE_API_KEY=${AIRTABLE_API_KEY},AIRTABLE_BASE_ID=${AIRTABLE_BASE_ID},GMAIL_USER_EMAIL=${GMAIL_USER_EMAIL},GOOGLE_CHAT_SPACE_ID=${GOOGLE_CHAT_SPACE_ID},GCP_SERVICE_ACCOUNT_JSON_PATH=/secrets/google-service-account-keys.json \
+  --update-secrets=/secrets/google-service-account-keys.json=service-account-key:latest
 
 PUBSUB_URL=$(gcloud run services describe jetsmx-pubsub-handler --platform managed --region ${REGION} --format 'value(status.url)')
 echo "Pub/Sub handler deployed: ${PUBSUB_URL}"

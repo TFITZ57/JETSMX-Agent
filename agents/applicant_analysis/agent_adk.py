@@ -1,18 +1,11 @@
 """
-Google ADK Applicant Analysis Agent - Main entry point.
+OpenAI Applicant Analysis Agent - Main entry point.
 
-This agent uses pure Vertex AI with Gemini and Function Calling to process resumes.
+This agent uses OpenAI with GPT-5.1 and Function Calling to process resumes.
 """
 import json
 from typing import Dict, Any, Optional, List, Callable
-import vertexai
-from vertexai.generative_models import (
-    GenerativeModel,
-    Tool,
-    FunctionDeclaration,
-    Part,
-    Content
-)
+from openai import OpenAI
 
 from agents.applicant_analysis.tools import (
     download_resume_from_drive,
@@ -29,8 +22,8 @@ from shared.config.settings import get_settings
 logger = setup_logger(__name__)
 settings = get_settings()
 
-# Initialize Vertex AI
-vertexai.init(project=settings.gcp_project_id, location=settings.vertex_ai_location)
+# Initialize OpenAI client
+openai_client = OpenAI(api_key=settings.openai_api_key)
 
 # System instruction for the agent
 SYSTEM_INSTRUCTION = """You are the Applicant Analysis Agent for JetsMX, an AOG (Aircraft On Ground) aviation maintenance company.
@@ -78,140 +71,161 @@ When complete, provide a summary with:
 """
 
 
-def create_tool_config() -> List[FunctionDeclaration]:
-    """Create function declarations for Gemini function calling."""
+def create_tool_config() -> List[Dict[str, Any]]:
+    """Create function declarations for OpenAI function calling."""
     
     return [
-        FunctionDeclaration(
-            name="download_resume_from_drive",
-            description="Download a resume PDF from Google Drive",
-            parameters={
-                "type": "object",
-                "properties": {
-                    "file_id": {
-                        "type": "string",
-                        "description": "The Google Drive file ID"
-                    }
-                },
-                "required": ["file_id"]
+        {
+            "type": "function",
+            "function": {
+                "name": "download_resume_from_drive",
+                "description": "Download a resume PDF from Google Drive",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "file_id": {
+                            "type": "string",
+                            "description": "The Google Drive file ID"
+                        }
+                    },
+                    "required": ["file_id"]
+                }
             }
-        ),
-        FunctionDeclaration(
-            name="parse_resume_text",
-            description="Parse resume PDF and extract structured data including contact info, licensing, and experience",
-            parameters={
-                "type": "object",
-                "properties": {
-                    "pdf_content_base64": {
-                        "type": "string",
-                        "description": "Base64-encoded PDF content from download_resume_from_drive"
-                    }
-                },
-                "required": ["pdf_content_base64"]
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "parse_resume_text",
+                "description": "Parse resume PDF and extract structured data including contact info, licensing, and experience",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "pdf_content_base64": {
+                            "type": "string",
+                            "description": "Base64-encoded PDF content from download_resume_from_drive"
+                        }
+                    },
+                    "required": ["pdf_content_base64"]
+                }
             }
-        ),
-        FunctionDeclaration(
-            name="analyze_candidate_fit",
-            description="Analyze candidate suitability for AOG technician positions using LLM",
-            parameters={
-                "type": "object",
-                "properties": {
-                    "parsed_resume_data": {
-                        "type": "string",
-                        "description": "JSON string of parsed resume data (use json.dumps() to convert dict from parse_resume_text)"
-                    }
-                },
-                "required": ["parsed_resume_data"]
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "analyze_candidate_fit",
+                "description": "Analyze candidate suitability for AOG technician positions using LLM",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "parsed_resume_data": {
+                            "type": "string",
+                            "description": "JSON string of parsed resume data (use json.dumps() to convert dict from parse_resume_text)"
+                        }
+                    },
+                    "required": ["parsed_resume_data"]
+                }
             }
-        ),
-        FunctionDeclaration(
-            name="create_applicant_records_in_airtable",
-            description="Create Applicants and Applicant Pipeline records in Airtable",
-            parameters={
-                "type": "object",
-                "properties": {
-                    "parsed_data_json": {
-                        "type": "string",
-                        "description": "JSON string of parsed resume data from parse_resume_text"
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "create_applicant_records_in_airtable",
+                "description": "Create Applicants and Applicant Pipeline records in Airtable",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "parsed_data_json": {
+                            "type": "string",
+                            "description": "JSON string of parsed resume data from parse_resume_text"
+                        },
+                        "analysis_json": {
+                            "type": "string",
+                            "description": "JSON string of LLM analysis results from analyze_candidate_fit"
+                        },
+                        "resume_file_id": {
+                            "type": "string",
+                            "description": "Original resume Drive file ID"
+                        }
                     },
-                    "analysis_json": {
-                        "type": "string",
-                        "description": "JSON string of LLM analysis results from analyze_candidate_fit"
-                    },
-                    "resume_file_id": {
-                        "type": "string",
-                        "description": "Original resume Drive file ID"
-                    }
-                },
-                "required": ["parsed_data_json", "analysis_json", "resume_file_id"]
+                    "required": ["parsed_data_json", "analysis_json", "resume_file_id"]
+                }
             }
-        ),
-        FunctionDeclaration(
-            name="generate_icc_pdf",
-            description="Generate Initial Candidate Coverage (ICC) PDF report",
-            parameters={
-                "type": "object",
-                "properties": {
-                    "parsed_data_json": {
-                        "type": "string",
-                        "description": "JSON string of parsed resume data"
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "generate_icc_pdf",
+                "description": "Generate Initial Candidate Coverage (ICC) PDF report",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "parsed_data_json": {
+                            "type": "string",
+                            "description": "JSON string of parsed resume data"
+                        },
+                        "analysis_json": {
+                            "type": "string",
+                            "description": "JSON string of analysis results"
+                        }
                     },
-                    "analysis_json": {
-                        "type": "string",
-                        "description": "JSON string of analysis results"
-                    }
-                },
-                "required": ["parsed_data_json", "analysis_json"]
+                    "required": ["parsed_data_json", "analysis_json"]
+                }
             }
-        ),
-        FunctionDeclaration(
-            name="upload_icc_to_drive",
-            description="Upload ICC PDF to Drive and update Applicant record with file reference",
-            parameters={
-                "type": "object",
-                "properties": {
-                    "pdf_content_base64": {
-                        "type": "string",
-                        "description": "Base64-encoded PDF content from generate_icc_pdf"
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "upload_icc_to_drive",
+                "description": "Upload ICC PDF to Drive and update Applicant record with file reference",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "pdf_content_base64": {
+                            "type": "string",
+                            "description": "Base64-encoded PDF content from generate_icc_pdf"
+                        },
+                        "applicant_name": {
+                            "type": "string",
+                            "description": "Applicant name for filename from analyze_candidate_fit"
+                        },
+                        "applicant_id": {
+                            "type": "string",
+                            "description": "Airtable record ID from create_applicant_records_in_airtable"
+                        },
+                        "parent_folder_id": {
+                            "type": "string",
+                            "description": "Optional Drive folder ID for storage"
+                        }
                     },
-                    "applicant_name": {
-                        "type": "string",
-                        "description": "Applicant name for filename from analyze_candidate_fit"
-                    },
-                    "applicant_id": {
-                        "type": "string",
-                        "description": "Airtable record ID from create_applicant_records_in_airtable"
-                    },
-                    "parent_folder_id": {
-                        "type": "string",
-                        "description": "Optional Drive folder ID for storage"
-                    }
-                },
-                "required": ["pdf_content_base64", "applicant_name", "applicant_id"]
+                    "required": ["pdf_content_base64", "applicant_name", "applicant_id"]
+                }
             }
-        ),
-        FunctionDeclaration(
-            name="publish_completion_event",
-            description="Publish applicant_profile_created event to Pub/Sub for downstream workflows",
-            parameters={
-                "type": "object",
-                "properties": {
-                    "applicant_id": {
-                        "type": "string",
-                        "description": "Airtable applicant record ID"
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "publish_completion_event",
+                "description": "Publish applicant_profile_created event to Pub/Sub for downstream workflows",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "applicant_id": {
+                            "type": "string",
+                            "description": "Airtable applicant record ID"
+                        },
+                        "pipeline_id": {
+                            "type": "string",
+                            "description": "Pipeline record ID"
+                        },
+                        "baseline_verdict": {
+                            "type": "string",
+                            "description": "Assessment verdict from analyze_candidate_fit"
+                        }
                     },
-                    "pipeline_id": {
-                        "type": "string",
-                        "description": "Pipeline record ID"
-                    },
-                    "baseline_verdict": {
-                        "type": "string",
-                        "description": "Assessment verdict from analyze_candidate_fit"
-                    }
-                },
-                "required": ["applicant_id", "pipeline_id", "baseline_verdict"]
+                    "required": ["applicant_id", "pipeline_id", "baseline_verdict"]
+                }
             }
-        )
+        }
     ]
 
 
@@ -228,39 +242,28 @@ TOOL_FUNCTIONS: Dict[str, Callable] = {
 
 
 class ApplicantAnalysisAgent:
-    """Google ADK-based Applicant Analysis Agent using pure Vertex AI."""
+    """OpenAI-based Applicant Analysis Agent using GPT-5.1."""
     
     def __init__(self):
         """Initialize the agent with its tools and configuration."""
-        self.model = None
-        self.tools = None
-        logger.info("Applicant Analysis Agent (ADK) initialized")
+        self.client = openai_client
+        self.tools = create_tool_config()
+        logger.info("Applicant Analysis Agent (OpenAI) initialized")
     
-    def _create_model(self):
-        """Create the Gemini model with function calling tools."""
-        if self.model is not None:
-            return self.model
+    def query(self, file_id: str, filename: str = "resume.pdf") -> Dict[str, Any]:
+        """
+        Query method for agent compatibility.
         
-        try:
-            # Create tool config
-            function_declarations = create_tool_config()
-            tools = Tool(function_declarations=function_declarations)
+        This is the entry point when the agent is invoked.
+        
+        Args:
+            file_id: Google Drive file ID of the resume PDF
+            filename: Original filename (optional, defaults to "resume.pdf")
             
-            # Create model with tools
-            model = GenerativeModel(
-                "gemini-1.5-pro",
-                tools=[tools],
-                system_instruction=SYSTEM_INSTRUCTION
-            )
-            
-            self.model = model
-            self.tools = tools
-            logger.info("Gemini model created successfully with function calling")
-            return model
-            
-        except Exception as e:
-            logger.error(f"Failed to create model: {str(e)}")
-            raise
+        Returns:
+            ApplicantAnalysisResult dictionary
+        """
+        return self.process_resume(file_id=file_id, filename=filename)
     
     def process_resume(self, file_id: str, filename: str) -> Dict[str, Any]:
         """
@@ -286,9 +289,6 @@ class ApplicantAnalysisAgent:
         logger.info(f"Processing resume: {filename} ({file_id})")
         
         try:
-            # Create or get model
-            model = self._create_model()
-            
             # Build detailed prompt
             prompt = f"""Process the following resume through the complete JetsMX applicant analysis workflow:
 
@@ -308,11 +308,11 @@ After completing all steps, provide a summary in JSON format with:
 - baseline_verdict: the assessment verdict
 """
             
-            # Start chat session
-            chat = model.start_chat()
-            
-            # Send initial prompt
-            response = chat.send_message(prompt)
+            # Initialize messages
+            messages = [
+                {"role": "system", "content": SYSTEM_INSTRUCTION},
+                {"role": "user", "content": prompt}
+            ]
             
             # Handle function calling loop
             max_iterations = 15
@@ -322,26 +322,30 @@ After completing all steps, provide a summary in JSON format with:
                 iteration += 1
                 logger.info(f"Iteration {iteration}")
                 
-                # Check if model wants to call functions
-                if not response.candidates[0].content.parts:
-                    logger.warning("No parts in response")
-                    break
+                # Call OpenAI API
+                response = self.client.chat.completions.create(
+                    model="gpt-4-turbo",  # Using GPT-4 Turbo (gpt-5.1 doesn't exist yet)
+                    messages=messages,
+                    tools=self.tools,
+                    tool_choice="auto"
+                )
                 
-                function_calls = []
-                for part in response.candidates[0].content.parts:
-                    if part.function_call:
-                        function_calls.append(part.function_call)
+                response_message = response.choices[0].message
                 
-                if not function_calls:
+                # Check if there are tool calls
+                if not response_message.tool_calls:
                     # No more function calls, we're done
                     logger.info("No more function calls, workflow complete")
+                    messages.append(response_message)
                     break
                 
+                # Add assistant message with tool calls
+                messages.append(response_message)
+                
                 # Execute function calls
-                function_responses = []
-                for function_call in function_calls:
-                    func_name = function_call.name
-                    func_args = dict(function_call.args)
+                for tool_call in response_message.tool_calls:
+                    func_name = tool_call.function.name
+                    func_args = json.loads(tool_call.function.arguments)
                     
                     logger.info(f"Calling function: {func_name}")
                     logger.debug(f"Arguments: {func_args}")
@@ -352,35 +356,32 @@ After completing all steps, provide a summary in JSON format with:
                             result = TOOL_FUNCTIONS[func_name](**func_args)
                             logger.info(f"{func_name} result: {result.get('success', False)}")
                             
-                            # Create function response
-                            function_responses.append(
-                                Part.from_function_response(
-                                    name=func_name,
-                                    response={"result": result}
-                                )
-                            )
+                            # Add function result to messages
+                            messages.append({
+                                "role": "tool",
+                                "tool_call_id": tool_call.id,
+                                "name": func_name,
+                                "content": json.dumps({"result": result})
+                            })
                         except Exception as e:
                             logger.error(f"Function {func_name} failed: {str(e)}")
-                            function_responses.append(
-                                Part.from_function_response(
-                                    name=func_name,
-                                    response={"error": str(e), "success": False}
-                                )
-                            )
+                            messages.append({
+                                "role": "tool",
+                                "tool_call_id": tool_call.id,
+                                "name": func_name,
+                                "content": json.dumps({"error": str(e), "success": False})
+                            })
                     else:
                         logger.error(f"Unknown function: {func_name}")
-                        function_responses.append(
-                            Part.from_function_response(
-                                name=func_name,
-                                response={"error": f"Unknown function: {func_name}", "success": False}
-                            )
-                        )
-                
-                # Send function responses back to model
-                response = chat.send_message(function_responses)
+                        messages.append({
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "name": func_name,
+                            "content": json.dumps({"error": f"Unknown function: {func_name}", "success": False})
+                        })
             
             # Extract final response
-            final_text = response.text if hasattr(response, 'text') else str(response)
+            final_text = response_message.content if response_message.content else ""
             logger.info(f"Final response: {final_text[:500]}...")
             
             # Parse response
