@@ -23,10 +23,17 @@ class AirtableWebhookClient:
         """Initialize webhook client."""
         settings = get_settings()
         self.api_key = api_key or settings.airtable_api_key
+        
+        if not self.api_key:
+            logger.error("Airtable API key is empty or None")
+            raise ValueError("AIRTABLE_API_KEY environment variable must be set")
+        
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
+        
+        logger.debug(f"Initialized webhook client with API key: {self.api_key[:10]}...")
     
     def create_webhook(
         self,

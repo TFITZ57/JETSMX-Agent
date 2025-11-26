@@ -13,7 +13,8 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
-        extra="ignore"
+        extra="ignore",
+        env_ignore_empty=True  # Ignore empty env vars, use defaults instead
     )
     
     # Google Cloud Platform
